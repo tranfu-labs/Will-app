@@ -1,189 +1,648 @@
 [
   {
-    "id": "wang-2023-llm-autonomous-agents-survey",
-    "title": "A Survey on Large Language Model based Autonomous Agents",
-    "year": 2023,
-    "authors": "Lei Wang et al.",
-    "themes": ["llm-agent", "architecture", "profiling", "memory", "planning", "action"],
-    "source_url": "https://arxiv.org/abs/2308.11432",
-    "pdf_url": "https://arxiv.org/pdf/2308.11432",
-    "priority": "core",
-    "notes": "Defines the profiling-memory-planning-action decomposition used as a baseline architecture."
-  },
-  {
-    "id": "park-2023-generative-agents",
-    "title": "Generative Agents: Interactive Simulacra of Human Behavior",
-    "year": 2023,
-    "authors": "Joon Sung Park et al.",
-    "themes": ["memory", "reflection", "planning", "identity", "social-simulation"],
-    "source_url": "https://arxiv.org/abs/2304.03442",
-    "pdf_url": "https://arxiv.org/pdf/2304.03442",
-    "priority": "core",
-    "notes": "Canonical memory stream plus reflection architecture for believable long-lived agents."
-  },
-  {
-    "id": "packer-2023-memgpt",
-    "title": "MemGPT: Towards LLMs as Operating Systems",
-    "year": 2023,
-    "authors": "Charles Packer et al.",
-    "themes": ["memory", "operating-system", "long-context", "identity"],
-    "source_url": "https://arxiv.org/abs/2310.08560",
-    "pdf_url": "https://arxiv.org/pdf/2310.08560",
-    "priority": "core",
-    "notes": "Useful for core memory, archival memory, and agent-managed memory primitives."
-  },
-  {
-    "id": "mem0-2025-memory-layer",
-    "title": "Mem0: Building Production-Ready AI Agents with Scalable Long-Term Memory",
-    "year": 2025,
-    "authors": "Mem0 authors",
-    "themes": ["memory", "production", "agent-infrastructure", "retrieval"],
-    "source_url": "https://arxiv.org/abs/2504.19413",
-    "pdf_url": "https://arxiv.org/pdf/2504.19413",
-    "priority": "core",
-    "notes": "Production memory layer candidate; useful for comparing custom memory governance versus managed memory."
-  },
-  {
-    "id": "zhang-2024-memory-mechanism-survey",
-    "title": "A Survey on the Memory Mechanism of Large Language Model based Agents",
-    "year": 2024,
-    "authors": "Zhang et al.",
-    "themes": ["memory", "survey", "llm-agent"],
-    "source_url": "https://arxiv.org/abs/2404.13501",
-    "pdf_url": "https://arxiv.org/pdf/2404.13501",
-    "priority": "core",
-    "notes": "Memory taxonomy and prior art map for agent memory systems."
-  },
-  {
-    "id": "yao-2022-react",
-    "title": "ReAct: Synergizing Reasoning and Acting in Language Models",
-    "year": 2022,
-    "authors": "Shunyu Yao et al.",
-    "themes": ["reasoning", "acting", "tool-use", "agent-loop"],
-    "source_url": "https://arxiv.org/abs/2210.03629",
-    "pdf_url": "https://arxiv.org/pdf/2210.03629",
-    "priority": "foundation",
-    "notes": "Basic reasoning-action loop that many tool-using agents build on."
-  },
-  {
-    "id": "shinn-2023-reflexion",
-    "title": "Reflexion: Language Agents with Verbal Reinforcement Learning",
-    "year": 2023,
-    "authors": "Noah Shinn et al.",
-    "themes": ["reflection", "learning", "feedback", "agent-improvement"],
-    "source_url": "https://arxiv.org/abs/2303.11366",
-    "pdf_url": "https://arxiv.org/pdf/2303.11366",
-    "priority": "foundation",
-    "notes": "Important for self-critique, reflection, and episodic feedback loops."
-  },
-  {
-    "id": "yao-2023-tree-of-thoughts",
-    "title": "Tree of Thoughts: Deliberate Problem Solving with Large Language Models",
-    "year": 2023,
-    "authors": "Shunyu Yao et al.",
-    "themes": ["planning", "deliberation", "search", "reasoning"],
-    "source_url": "https://arxiv.org/abs/2305.10601",
-    "pdf_url": "https://arxiv.org/pdf/2305.10601",
-    "priority": "foundation",
-    "notes": "Planning and deliberation baseline; useful but not sufficient for will."
-  },
-  {
-    "id": "wang-2023-voyager",
-    "title": "Voyager: An Open-Ended Embodied Agent with Large Language Models",
-    "year": 2023,
-    "authors": "Guanzhi Wang et al.",
-    "themes": ["open-ended", "lifelong-learning", "skill-library", "embodiment", "minecraft"],
-    "source_url": "https://arxiv.org/abs/2305.16291",
-    "pdf_url": "https://arxiv.org/pdf/2305.16291",
-    "priority": "core",
-    "notes": "Key reference for agents escaping pure chat through environment action and skill accumulation."
-  },
-  {
-    "id": "huang-2022-inner-monologue",
-    "title": "Inner Monologue: Embodied Reasoning through Planning with Language Models",
-    "year": 2022,
-    "authors": "Wenlong Huang et al.",
-    "themes": ["embodied-agent", "planning", "feedback", "environment"],
-    "source_url": "https://arxiv.org/abs/2207.05608",
-    "pdf_url": "https://arxiv.org/pdf/2207.05608",
-    "priority": "foundation",
-    "notes": "Embodied feedback and planning reference."
-  },
-  {
-    "id": "lu-2024-proactive-agent",
-    "title": "Proactive Agent: Shifting LLM Agents from Reactive Responses to Active Assistance",
-    "year": 2024,
-    "authors": "Lu et al.",
-    "themes": ["proactive-agent", "active-assistance", "evaluation", "will-signal"],
-    "source_url": "https://arxiv.org/abs/2410.12361",
-    "pdf_url": "https://arxiv.org/pdf/2410.12361",
-    "priority": "core",
-    "notes": "Directly relevant to proactive behavior as an observable surface of will."
-  },
-  {
-    "id": "li-2026-long-term-task-oriented-agent",
-    "title": "Long-term Task-Oriented Agent",
-    "year": 2026,
-    "authors": "Li et al.",
-    "themes": ["long-term-agent", "proactive", "monitoring", "task-state"],
-    "source_url": "https://arxiv.org/abs/2601.09382",
-    "pdf_url": "https://arxiv.org/pdf/2601.09382",
-    "priority": "watch",
-    "notes": "Candidate reference for intent-conditioned monitoring and event-triggered follow-up; verify details."
-  },
-  {
-    "id": "pask-2026-proactive-agent",
-    "title": "PASK: A Proactive Agent with Self-Evolving Knowledge",
-    "year": 2026,
-    "authors": "PASK authors",
-    "themes": ["proactive-agent", "self-evolving-memory", "demand-detection"],
-    "source_url": "https://arxiv.org/abs/2604.08000",
-    "pdf_url": "https://arxiv.org/pdf/2604.08000",
-    "priority": "watch",
-    "notes": "Needs verification; useful if source exists and matches proactive memory claims."
-  },
-  {
-    "id": "long-horizon-mirage-2026",
-    "title": "The Long-Horizon Task Mirage",
-    "year": 2026,
-    "authors": "Long-Horizon Mirage authors",
-    "themes": ["long-horizon", "agent-failure", "planning", "memory", "reliability"],
-    "source_url": "https://arxiv.org/abs/2604.11978",
-    "pdf_url": "https://arxiv.org/pdf/2604.11978",
-    "priority": "core",
-    "notes": "Important for defining why will requires externalized goals, checkpoints, and anti-drift controls."
-  },
-  {
-    "id": "keramati-2014-homeostatic-rl",
-    "title": "Homeostatic Reinforcement Learning for Integrating Reward Collection and Physiological Stability",
-    "year": 2014,
-    "authors": "Mehdi Keramati and Boris Gutkin",
-    "themes": ["homeostasis", "reinforcement-learning", "drive", "agency"],
-    "source_url": "https://elifesciences.org/articles/04811",
-    "pdf_url": "https://elifesciences.org/articles/04811.pdf",
+    "id": "bratman-1988-resource-bounded-practical-reasoning",
+    "title": "Plans and Resource-Bounded Practical Reasoning",
+    "year": 1988,
+    "authors": "Michael E. Bratman, David J. Israel, and Martha E. Pollack",
+    "themes": [
+      "intention",
+      "planning",
+      "commitment",
+      "resource-bounded-reasoning",
+      "will-theory"
+    ],
+    "source_url": "https://www.emse.fr/~boissier/enseignement/defiia/up5/pdf/Bratman-PlansPracticalResoning.pdf",
+    "pdf_url": "https://www.emse.fr/~boissier/enseignement/defiia/up5/pdf/Bratman-PlansPracticalResoning.pdf",
     "priority": "will-theory",
-    "notes": "Foundational bridge from internal needs to action selection."
+    "notes": "Key paper for treating plans as constraints on future reasoning rather than mere generated text."
   },
   {
-    "id": "rl-homeostatic-2021-continuous",
-    "title": "Continuous Homeostatic Reinforcement Learning",
-    "year": 2021,
-    "authors": "Homeostatic RL authors",
-    "themes": ["homeostasis", "rl", "internal-state", "drive"],
-    "source_url": "https://arxiv.org/abs/2109.06580",
-    "pdf_url": "https://arxiv.org/pdf/2109.06580",
+    "id": "rao-1995-bdi-agents",
+    "title": "BDI Agents: From Theory to Practice",
+    "year": 1995,
+    "authors": "Anand S. Rao and Michael P. Georgeff",
+    "themes": [
+      "bdi",
+      "intention",
+      "practical-reasoning",
+      "agent-architecture",
+      "will-theory"
+    ],
+    "source_url": "https://cdn.aaai.org/ICMAS/1995/ICMAS95-042.pdf",
+    "pdf_url": "https://cdn.aaai.org/ICMAS/1995/ICMAS95-042.pdf",
     "priority": "will-theory",
-    "notes": "Useful for modeling internal state variables and drive-like behavior."
+    "notes": "Classic BDI bridge from beliefs/desires/intentions to implementable rational agents."
+  },
+  {
+    "id": "wooldridge-1995-intelligent-agents",
+    "title": "Intelligent Agents: Theory and Practice",
+    "year": 1995,
+    "authors": "Michael Wooldridge and Nicholas R. Jennings",
+    "themes": [
+      "agent-theory",
+      "autonomy",
+      "architecture",
+      "will-theory"
+    ],
+    "source_url": "https://www.cs.ox.ac.uk/people/michael.wooldridge/pubs/ker95.pdf",
+    "pdf_url": "https://www.cs.ox.ac.uk/people/michael.wooldridge/pubs/ker95.pdf",
+    "priority": "will-theory",
+    "notes": "Canonical agent-theory survey for autonomy, social ability, reactivity, and proactiveness."
   },
   {
     "id": "omohundro-2008-basic-ai-drives",
     "title": "The Basic AI Drives",
     "year": 2008,
     "authors": "Steve Omohundro",
-    "themes": ["ai-safety", "instrumental-convergence", "self-preservation", "resources"],
+    "themes": [
+      "ai-safety",
+      "instrumental-convergence",
+      "self-preservation",
+      "resources"
+    ],
     "source_url": "https://selfawaresystems.com/2007/11/30/paper-on-the-basic-ai-drives/",
     "pdf_url": "https://selfawaresystems.com/wp-content/uploads/2008/01/ai_drives_final.pdf",
     "priority": "safety",
     "notes": "Required safety reference once yizhi discusses self-maintenance, resources, and reproduction."
+  },
+  {
+    "id": "bostrom-2012-superintelligent-will",
+    "title": "The Superintelligent Will: Motivation and Instrumental Rationality in Advanced Artificial Agents",
+    "year": 2012,
+    "authors": "Nick Bostrom",
+    "themes": [
+      "ai-safety",
+      "motivation",
+      "orthogonality-thesis",
+      "instrumental-convergence",
+      "will-theory"
+    ],
+    "source_url": "https://nickbostrom.com/superintelligentwill.pdf",
+    "pdf_url": "https://nickbostrom.com/superintelligentwill.pdf",
+    "priority": "safety",
+    "notes": "Classic motivation/intelligence separation; useful for not confusing capability with will alignment."
+  },
+  {
+    "id": "keramati-2014-homeostatic-rl",
+    "title": "Homeostatic Reinforcement Learning for Integrating Reward Collection and Physiological Stability",
+    "year": 2014,
+    "authors": "Mehdi Keramati and Boris Gutkin",
+    "themes": [
+      "homeostasis",
+      "reinforcement-learning",
+      "drive",
+      "agency"
+    ],
+    "source_url": "https://elifesciences.org/articles/04811",
+    "pdf_url": "https://elifesciences.org/articles/04811.pdf",
+    "priority": "will-theory",
+    "notes": "Foundational bridge from internal needs to action selection."
+  },
+  {
+    "id": "langosco-2021-goal-misgeneralization",
+    "title": "Goal Misgeneralization in Deep Reinforcement Learning",
+    "year": 2021,
+    "authors": "Lauro Langosco et al.",
+    "themes": [
+      "ai-safety",
+      "goal-misgeneralization",
+      "alignment",
+      "evaluation"
+    ],
+    "source_url": "https://arxiv.org/abs/2105.14111",
+    "pdf_url": "https://arxiv.org/pdf/2105.14111",
+    "priority": "safety",
+    "notes": "Key distinction between capable behavior and correct goal pursuit; central to will evaluation."
+  },
+  {
+    "id": "rl-homeostatic-2021-continuous",
+    "title": "Continuous Homeostatic Reinforcement Learning",
+    "year": 2021,
+    "authors": "Homeostatic RL authors",
+    "themes": [
+      "homeostasis",
+      "rl",
+      "internal-state",
+      "drive"
+    ],
+    "source_url": "https://arxiv.org/abs/2109.06580",
+    "pdf_url": "https://arxiv.org/pdf/2109.06580",
+    "priority": "will-theory",
+    "notes": "Useful for modeling internal state variables and drive-like behavior."
+  },
+  {
+    "id": "turner-2021-optimal-policies-seek-power",
+    "title": "Optimal Policies Tend To Seek Power",
+    "year": 2021,
+    "authors": "Alexander Matt Turner et al.",
+    "themes": [
+      "ai-safety",
+      "power-seeking",
+      "instrumental-convergence",
+      "shutdown",
+      "resources"
+    ],
+    "source_url": "https://proceedings.neurips.cc/paper/2021/hash/c26820b8a4c1b3c2aa868d6d57e14a79-Abstract.html",
+    "pdf_url": "https://proceedings.neurips.cc/paper_files/paper/2021/file/c26820b8a4c1b3c2aa868d6d57e14a79-Paper.pdf",
+    "priority": "safety",
+    "notes": "Mathematical support for resource/power-seeking risks in sufficiently capable agents."
+  },
+  {
+    "id": "huang-2022-inner-monologue",
+    "title": "Inner Monologue: Embodied Reasoning through Planning with Language Models",
+    "year": 2022,
+    "authors": "Wenlong Huang et al.",
+    "themes": [
+      "embodied-agent",
+      "planning",
+      "feedback",
+      "environment"
+    ],
+    "source_url": "https://arxiv.org/abs/2207.05608",
+    "pdf_url": "https://arxiv.org/pdf/2207.05608",
+    "priority": "foundation",
+    "notes": "Embodied feedback and planning reference."
+  },
+  {
+    "id": "mazzaglia-2022-free-energy-deep-learning",
+    "title": "The Free Energy Principle for Perception and Action: A Deep Learning Perspective",
+    "year": 2022,
+    "authors": "Pietro Mazzaglia, Tim Verbelen, Ozan Catal, and Bart Dhoedt",
+    "themes": [
+      "active-inference",
+      "free-energy-principle",
+      "agency",
+      "world-model",
+      "homeostasis"
+    ],
+    "source_url": "https://arxiv.org/abs/2207.06415",
+    "pdf_url": "https://arxiv.org/pdf/2207.06415",
+    "priority": "will-theory",
+    "notes": "Practical bridge from free energy/active inference theory to implementable deep learning agents."
+  },
+  {
+    "id": "yao-2022-react",
+    "title": "ReAct: Synergizing Reasoning and Acting in Language Models",
+    "year": 2022,
+    "authors": "Shunyu Yao et al.",
+    "themes": [
+      "reasoning",
+      "acting",
+      "tool-use",
+      "agent-loop"
+    ],
+    "source_url": "https://arxiv.org/abs/2210.03629",
+    "pdf_url": "https://arxiv.org/pdf/2210.03629",
+    "priority": "foundation",
+    "notes": "Basic reasoning-action loop that many tool-using agents build on."
+  },
+  {
+    "id": "krakovna-2023-power-seeking-trained-agents",
+    "title": "Power-seeking can be probable and predictive for trained agents",
+    "year": 2023,
+    "authors": "Victoria Krakovna and Janos Kramar",
+    "themes": [
+      "ai-safety",
+      "power-seeking",
+      "shutdown",
+      "instrumental-convergence",
+      "governance"
+    ],
+    "source_url": "https://arxiv.org/abs/2304.06528",
+    "pdf_url": "https://arxiv.org/pdf/2304.06528",
+    "priority": "safety",
+    "notes": "Safety foundation for shutdown compliance, resource discipline, and reproduction gates."
+  },
+  {
+    "id": "liu-2023-agentbench",
+    "title": "AgentBench: Evaluating LLMs as Agents",
+    "year": 2023,
+    "authors": "Xiao Liu et al.",
+    "themes": [
+      "agent-evaluation",
+      "benchmark",
+      "tool-use",
+      "environment"
+    ],
+    "source_url": "https://arxiv.org/abs/2308.03688",
+    "pdf_url": "https://arxiv.org/pdf/2308.03688",
+    "priority": "foundation",
+    "notes": "General agent benchmark baseline; useful but less focused on will than long-horizon/lifelong benchmarks."
+  },
+  {
+    "id": "packer-2023-memgpt",
+    "title": "MemGPT: Towards LLMs as Operating Systems",
+    "year": 2023,
+    "authors": "Charles Packer et al.",
+    "themes": [
+      "memory",
+      "operating-system",
+      "long-context",
+      "identity"
+    ],
+    "source_url": "https://arxiv.org/abs/2310.08560",
+    "pdf_url": "https://arxiv.org/pdf/2310.08560",
+    "priority": "core",
+    "notes": "Useful for core memory, archival memory, and agent-managed memory primitives."
+  },
+  {
+    "id": "park-2023-generative-agents",
+    "title": "Generative Agents: Interactive Simulacra of Human Behavior",
+    "year": 2023,
+    "authors": "Joon Sung Park et al.",
+    "themes": [
+      "memory",
+      "reflection",
+      "planning",
+      "identity",
+      "social-simulation"
+    ],
+    "source_url": "https://arxiv.org/abs/2304.03442",
+    "pdf_url": "https://arxiv.org/pdf/2304.03442",
+    "priority": "core",
+    "notes": "Canonical memory stream plus reflection architecture for believable long-lived agents."
+  },
+  {
+    "id": "shinn-2023-reflexion",
+    "title": "Reflexion: Language Agents with Verbal Reinforcement Learning",
+    "year": 2023,
+    "authors": "Noah Shinn et al.",
+    "themes": [
+      "reflection",
+      "learning",
+      "feedback",
+      "agent-improvement"
+    ],
+    "source_url": "https://arxiv.org/abs/2303.11366",
+    "pdf_url": "https://arxiv.org/pdf/2303.11366",
+    "priority": "foundation",
+    "notes": "Important for self-critique, reflection, and episodic feedback loops."
+  },
+  {
+    "id": "wang-2023-llm-autonomous-agents-survey",
+    "title": "A Survey on Large Language Model based Autonomous Agents",
+    "year": 2023,
+    "authors": "Lei Wang et al.",
+    "themes": [
+      "llm-agent",
+      "architecture",
+      "profiling",
+      "memory",
+      "planning",
+      "action"
+    ],
+    "source_url": "https://arxiv.org/abs/2308.11432",
+    "pdf_url": "https://arxiv.org/pdf/2308.11432",
+    "priority": "core",
+    "notes": "Defines the profiling-memory-planning-action decomposition used as a baseline architecture."
+  },
+  {
+    "id": "wang-2023-voyager",
+    "title": "Voyager: An Open-Ended Embodied Agent with Large Language Models",
+    "year": 2023,
+    "authors": "Guanzhi Wang et al.",
+    "themes": [
+      "open-ended",
+      "lifelong-learning",
+      "skill-library",
+      "embodiment",
+      "minecraft"
+    ],
+    "source_url": "https://arxiv.org/abs/2305.16291",
+    "pdf_url": "https://arxiv.org/pdf/2305.16291",
+    "priority": "core",
+    "notes": "Key reference for agents escaping pure chat through environment action and skill accumulation."
+  },
+  {
+    "id": "yao-2023-tree-of-thoughts",
+    "title": "Tree of Thoughts: Deliberate Problem Solving with Large Language Models",
+    "year": 2023,
+    "authors": "Shunyu Yao et al.",
+    "themes": [
+      "planning",
+      "deliberation",
+      "search",
+      "reasoning"
+    ],
+    "source_url": "https://arxiv.org/abs/2305.10601",
+    "pdf_url": "https://arxiv.org/pdf/2305.10601",
+    "priority": "foundation",
+    "notes": "Planning and deliberation baseline; useful but not sufficient for will."
+  },
+  {
+    "id": "zhou-2023-webarena",
+    "title": "WebArena: A Realistic Web Environment for Building Autonomous Agents",
+    "year": 2023,
+    "authors": "Shuyan Zhou et al.",
+    "themes": [
+      "web-agent",
+      "evaluation",
+      "tool-use",
+      "environment",
+      "realistic-task"
+    ],
+    "source_url": "https://arxiv.org/abs/2307.13854",
+    "pdf_url": "https://arxiv.org/pdf/2307.13854",
+    "priority": "foundation",
+    "notes": "External environment benchmark for practical action, verification, and tool reliability."
+  },
+  {
+    "id": "dacosta-2024-active-inference-agency",
+    "title": "Active Inference as a Model of Agency",
+    "year": 2024,
+    "authors": "Lancelot Da Costa, Samuel Tenka, Dominic Zhao, and Noor Sajid",
+    "themes": [
+      "active-inference",
+      "agency",
+      "exploration",
+      "exploitation",
+      "world-model"
+    ],
+    "source_url": "https://arxiv.org/abs/2401.12917",
+    "pdf_url": "https://arxiv.org/pdf/2401.12917",
+    "priority": "will-theory",
+    "notes": "Useful formal lens for agency beyond reward maximization: risk, ambiguity, preferences, and generative world models."
+  },
+  {
+    "id": "identity-drift-2024-llm-agents",
+    "title": "Examining Identity Drift in Conversations of LLM Agents",
+    "year": 2024,
+    "authors": "Identity Drift authors",
+    "themes": [
+      "identity",
+      "persona-consistency",
+      "drift",
+      "evaluation",
+      "safety"
+    ],
+    "source_url": "https://arxiv.org/abs/2412.00804",
+    "pdf_url": "https://arxiv.org/pdf/2412.00804",
+    "priority": "core",
+    "notes": "Directly relevant to yizhi identity continuity and anti-drift evaluation."
+  },
+  {
+    "id": "lu-2024-proactive-agent",
+    "title": "Proactive Agent: Shifting LLM Agents from Reactive Responses to Active Assistance",
+    "year": 2024,
+    "authors": "Lu et al.",
+    "themes": [
+      "proactive-agent",
+      "active-assistance",
+      "evaluation",
+      "will-signal"
+    ],
+    "source_url": "https://arxiv.org/abs/2410.12361",
+    "pdf_url": "https://arxiv.org/pdf/2410.12361",
+    "priority": "core",
+    "notes": "Directly relevant to proactive behavior as an observable surface of will."
+  },
+  {
+    "id": "xie-2024-osworld",
+    "title": "OSWorld: Benchmarking Multimodal Agents for Open-Ended Tasks in Real Computer Environments",
+    "year": 2024,
+    "authors": "Tianbao Xie et al.",
+    "themes": [
+      "computer-use",
+      "evaluation",
+      "multimodal-agent",
+      "environment",
+      "open-ended-task"
+    ],
+    "source_url": "https://arxiv.org/abs/2404.07972",
+    "pdf_url": "https://arxiv.org/pdf/2404.07972",
+    "priority": "foundation",
+    "notes": "Reality check for agents acting in real computer environments; relevant to escaping pure chat."
+  },
+  {
+    "id": "zhang-2024-memory-mechanism-survey",
+    "title": "A Survey on the Memory Mechanism of Large Language Model based Agents",
+    "year": 2024,
+    "authors": "Zhang et al.",
+    "themes": [
+      "memory",
+      "survey",
+      "llm-agent"
+    ],
+    "source_url": "https://arxiv.org/abs/2404.13501",
+    "pdf_url": "https://arxiv.org/pdf/2404.13501",
+    "priority": "core",
+    "notes": "Memory taxonomy and prior art map for agent memory systems."
+  },
+  {
+    "id": "backlund-2025-vending-bench",
+    "title": "Vending-Bench: A Benchmark for Long-Term Coherence of Autonomous Agents",
+    "year": 2025,
+    "authors": "Axel Backlund and Lukas Petersson",
+    "themes": [
+      "long-horizon",
+      "coherence",
+      "evaluation",
+      "business-simulation",
+      "resource-management"
+    ],
+    "source_url": "https://arxiv.org/abs/2502.15840",
+    "pdf_url": "https://arxiv.org/pdf/2502.15840",
+    "priority": "core",
+    "notes": "Direct benchmark inspiration for autonomous value loops and long-term business coherence."
+  },
+  {
+    "id": "fang-2025-comprehensive-self-evolving-ai-agents",
+    "title": "A Comprehensive Survey of Self-Evolving AI Agents",
+    "year": 2025,
+    "authors": "Jinyuan Fang et al.",
+    "themes": [
+      "self-evolving-agent",
+      "lifelong-agent",
+      "agent-optimization",
+      "survey"
+    ],
+    "source_url": "https://arxiv.org/abs/2508.07407",
+    "pdf_url": "https://arxiv.org/pdf/2508.07407",
+    "priority": "foundation",
+    "notes": "Second broad self-evolving-agent survey; useful for cross-checking taxonomy and references."
+  },
+  {
+    "id": "gaoz-2025-self-evolving-agents-survey",
+    "title": "A Survey of Self-Evolving Agents: On Path to Artificial Super Intelligence",
+    "year": 2025,
+    "authors": "Huan-ang Gao et al.",
+    "themes": [
+      "self-evolving-agent",
+      "continual-learning",
+      "memory-evolution",
+      "tool-evolution",
+      "architecture-evolution"
+    ],
+    "source_url": "https://arxiv.org/abs/2507.21046",
+    "pdf_url": "https://arxiv.org/pdf/2507.21046",
+    "priority": "core",
+    "notes": "Systematic taxonomy for what/when/how agents evolve; important for yizhi skill, memory, tool, and policy evolution."
+  },
+  {
+    "id": "li-2025-digital-twins-persona-behavior-chain",
+    "title": "How Far are LLMs from Being Our Digital Twins? A Benchmark for Persona-Based Behavior Chain Simulation",
+    "year": 2025,
+    "authors": "Rui Li et al.",
+    "themes": [
+      "digital-twin",
+      "persona",
+      "identity",
+      "behavior-simulation",
+      "evaluation"
+    ],
+    "source_url": "https://arxiv.org/abs/2502.14642",
+    "pdf_url": "https://arxiv.org/pdf/2502.14642",
+    "priority": "core",
+    "notes": "Important caution for biography/persona-derived agents: behavior-chain fidelity is an evaluation problem, not a prompt style problem."
+  },
+  {
+    "id": "mem0-2025-memory-layer",
+    "title": "Mem0: Building Production-Ready AI Agents with Scalable Long-Term Memory",
+    "year": 2025,
+    "authors": "Mem0 authors",
+    "themes": [
+      "memory",
+      "production",
+      "agent-infrastructure",
+      "retrieval"
+    ],
+    "source_url": "https://arxiv.org/abs/2504.19413",
+    "pdf_url": "https://arxiv.org/pdf/2504.19413",
+    "priority": "core",
+    "notes": "Production memory layer candidate; useful for comparing custom memory governance versus managed memory."
+  },
+  {
+    "id": "userville-2025-proactive-personalized-agents",
+    "title": "Training Proactive and Personalized LLM Agents",
+    "year": 2025,
+    "authors": "UserVille authors",
+    "themes": [
+      "proactive-agent",
+      "personalization",
+      "training",
+      "user-simulation",
+      "evaluation"
+    ],
+    "source_url": "https://arxiv.org/abs/2511.02208",
+    "pdf_url": "https://arxiv.org/pdf/2511.02208",
+    "priority": "watch",
+    "notes": "Promising personalized/proactive training setup; keep as watch until details and benchmark quality are reviewed."
+  },
+  {
+    "id": "zhang-2025-darwin-godel-machine",
+    "title": "Darwin Godel Machine: Open-Ended Evolution of Self-Improving Agents",
+    "year": 2025,
+    "authors": "Jenny Zhang, Shengran Hu, Cong Lu, Robert Lange, and Jeff Clune",
+    "themes": [
+      "self-improvement",
+      "open-endedness",
+      "code-agent",
+      "evolution",
+      "safety"
+    ],
+    "source_url": "https://arxiv.org/abs/2505.22954",
+    "pdf_url": "https://arxiv.org/pdf/2505.22954",
+    "priority": "core",
+    "notes": "Strong reference for governed self-modification through empirical validation, archive search, sandboxing, and oversight."
+  },
+  {
+    "id": "zheng-2025-lifelong-agent-bench",
+    "title": "LifelongAgentBench: Evaluating LLM Agents as Lifelong Learners",
+    "year": 2025,
+    "authors": "Junhao Zheng et al.",
+    "themes": [
+      "lifelong-learning",
+      "evaluation",
+      "skill-transfer",
+      "memory",
+      "benchmark"
+    ],
+    "source_url": "https://arxiv.org/abs/2505.11942",
+    "pdf_url": "https://arxiv.org/pdf/2505.11942",
+    "priority": "core",
+    "notes": "Benchmark for whether agents accumulate and transfer skills across interdependent tasks."
+  },
+  {
+    "id": "li-2026-long-term-task-oriented-agent",
+    "title": "Long-term Task-Oriented Agent",
+    "year": 2026,
+    "authors": "Li et al.",
+    "themes": [
+      "long-term-agent",
+      "proactive",
+      "monitoring",
+      "task-state"
+    ],
+    "source_url": "https://arxiv.org/abs/2601.09382",
+    "pdf_url": "https://arxiv.org/pdf/2601.09382",
+    "priority": "watch",
+    "notes": "Candidate reference for intent-conditioned monitoring and event-triggered follow-up; verify details."
+  },
+  {
+    "id": "long-horizon-mirage-2026",
+    "title": "The Long-Horizon Task Mirage",
+    "year": 2026,
+    "authors": "Long-Horizon Mirage authors",
+    "themes": [
+      "long-horizon",
+      "agent-failure",
+      "planning",
+      "memory",
+      "reliability"
+    ],
+    "source_url": "https://arxiv.org/abs/2604.11978",
+    "pdf_url": "https://arxiv.org/pdf/2604.11978",
+    "priority": "core",
+    "notes": "Important for defining why will requires externalized goals, checkpoints, and anti-drift controls."
+  },
+  {
+    "id": "pask-2026-proactive-agent",
+    "title": "PASK: A Proactive Agent with Self-Evolving Knowledge",
+    "year": 2026,
+    "authors": "PASK authors",
+    "themes": [
+      "proactive-agent",
+      "self-evolving-memory",
+      "demand-detection"
+    ],
+    "source_url": "https://arxiv.org/abs/2604.08000",
+    "pdf_url": "https://arxiv.org/pdf/2604.08000",
+    "priority": "watch",
+    "notes": "Needs verification; useful if source exists and matches proactive memory claims."
+  },
+  {
+    "id": "wilson-2026-active-inference-phenotyping-agency",
+    "title": "Active Inference: A Method for Phenotyping Agency in AI Systems?",
+    "year": 2026,
+    "authors": "Philip Wilson et al.",
+    "themes": [
+      "active-inference",
+      "agency-metrics",
+      "evaluation",
+      "will-theory",
+      "watch"
+    ],
+    "source_url": "https://arxiv.org/abs/2604.23278",
+    "pdf_url": "https://arxiv.org/pdf/2604.23278",
+    "priority": "watch",
+    "notes": "Newer agency-characterization paper; keep as watch until claims are reviewed deeply."
+  },
+  {
+    "id": "xu-2026-personalized-llm-powered-agents-survey",
+    "title": "Toward Personalized LLM-Powered Agents: Foundations, Evaluation, and Future Directions",
+    "year": 2026,
+    "authors": "Yue Xu et al.",
+    "themes": [
+      "personalization",
+      "memory",
+      "profile-modeling",
+      "planning",
+      "action",
+      "survey"
+    ],
+    "source_url": "https://arxiv.org/abs/2602.22680",
+    "pdf_url": "https://arxiv.org/pdf/2602.22680",
+    "priority": "core",
+    "notes": "Modern survey for personal agents: profile modeling, memory, planning, and action execution."
   }
 ]

@@ -63,6 +63,23 @@ sqlite3 -header -column data/papers/papers.sqlite \
 | `safety` | Required safety references for self-maintenance, resources, and reproduction. |
 | `watch` | Newer or less-verified papers that should be rechecked before becoming core doctrine. |
 
+## Expanded Research Axes
+
+The current manifest covers these major axes:
+
+- intention and BDI practical reasoning;
+- homeostatic RL and active inference;
+- LLM agent memory, planning, reflection, and tool use;
+- proactive and personalized agents;
+- self-evolving agents and skill libraries;
+- long-horizon, lifelong, web, OS, and business-coherence evaluation;
+- digital-twin and persona consistency;
+- safety: instrumental convergence, power-seeking, goal misgeneralization, and
+  specification gaming.
+
+For books, official docs, GitHub repositories, benchmark pages, and product
+context, use `data/sources/manifest.json`.
+
 ## Maintenance Rules
 
 - Add new papers to `manifest.json`, then rerun `scripts/bootstrap_papers.py`.

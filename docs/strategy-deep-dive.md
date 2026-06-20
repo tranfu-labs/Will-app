@@ -4,6 +4,8 @@
 > 目的：在 `RESEARCH.md` 的奠基研究之上，继续聚焦「隐私优先的个人自主智能体 / 会行动的数字分身」这条主线，形成更深的产品认知、竞争地图、MVP 楔子与验证标准。
 > 方法：基于当前公开产品资料、官方文档、投资方材料与 `RESEARCH.md` 的技术判断综合。商业数字和融资信息仍需在融资数据库中二次核验；本文件重点沉淀战略方向与产品假设。
 
+> 2026-06-21 更新：本文件现在被定位为 yizhi 的**应用层战略**，不是根命题。根命题已经上移为「AI Will Engine / 意志系统」：研究和实现 functional will，即目标连续性、自我模型、内在驱动、实践理性、行动、反馈学习、自我维护与受治理繁衍。详见 `docs/will-engine-whitepaper.md`、`docs/technical-stack-rfc.md`、`docs/evaluation-protocol.md`。
+
 ---
 
 ## 1. 新结论：不要做“更懂你的聊天机器人”，要做“可审计的个人行动系统”
@@ -266,4 +268,3 @@ MVP1 不是“能跑起来”，而是通过下面的验证门：
 - Letta stateful agents: https://docs.letta.com/guides/core-concepts/stateful-agents
 - Pydantic AI overview: https://pydantic.dev/docs/ai/overview/
 - Simile / Index Ventures: https://www.indexventures.com/perspectives/life-the-universe-and-simile-leading-similes-series-a/ and https://www.indexventures.com/companies/simile/
-
