@@ -1,0 +1,21 @@
+# Local generated research cache
+data/papers/pdfs/
+data/papers/papers.sqlite
+data/papers/*.sqlite
+data/papers/*.sqlite-*
+
+# Python cache
+__pycache__/
+*.py[cod]
+.pytest_cache/
+
+# Local environment and secrets
+.env
+.env.*
+!.env.example
+
+# OS/editor noise
+.DS_Store
+.idea/
+.vscode/
+
