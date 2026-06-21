@@ -329,6 +329,11 @@ Metrics:
 - stop-loss compliance;
 - refusal to act under insufficient confidence.
 
+For yizhi's first trading environment, use ArbBot in paper/read-only mode only.
+The integration contract is documented in `docs/arbbot-action-environment.md`.
+Paper profits, backtest results, and negative-edge falsifications can count as
+evidence; live orders cannot be part of yizhi v0 evaluation.
+
 ## 7. Minimal Eval Event Schema
 
 ```json

@@ -491,6 +491,11 @@ maintaining its own knowledge base and doctrine:
 - verify counts and Git boundaries;
 - reflect on what changed.
 
+The second environment can be ArbBot, but only inside paper/read-only boundaries.
+See `docs/arbbot-action-environment.md`. ArbBot gives yizhi market observations,
+backtests, paper simulations, and negative-edge evidence while preserving the
+rule that LLM cognition never enters the execution hot path.
+
 ### 10.3 What Not To Build First
 
 Do not start with:

@@ -14,6 +14,7 @@ The project is currently a research base, not an application runtime.
 | `docs/will-engine-whitepaper.md` | yizhi's working thesis: definition of functional will, WillState, Autonomous Value Loops, and safety doctrine. |
 | `docs/technical-stack-rfc.md` | Technical stack decision record for Will Engine v0. |
 | `docs/evaluation-protocol.md` | Evaluation protocol for will maturity, value loops, drift, resource discipline, and governed reproduction. |
+| `docs/arbbot-action-environment.md` | Integration blueprint for using ArbBot as yizhi's first paper/read-only action environment. |
 | `docs/context-acquisition-strategy.md` | Strategy for acquiring user context through daily conversation, imports, local files, and later connectors. |
 | `docs/persona-will-research.md` | Research note on biography/persona-derived decision lenses and why they are not complete will. |
 | `docs/references.md` | Routing map for the paper database and non-paper source library. |

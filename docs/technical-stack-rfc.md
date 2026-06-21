@@ -204,6 +204,12 @@ memory service silently define core identity, policies, or goals.
 | `self_modify` | change own prompts/skills/runtime code | Proposal and review first. |
 | `reproduce` | spawn persistent agents/forks | Disabled until reproduction policy exists. |
 
+ArbBot is the preferred first non-research action environment. In v0, yizhi may
+observe ArbBot and propose or run paper/read-only actions through documented
+commands, but it must not implement live execution, add exchange credentials, or
+bypass ArbBot's own roadmap and safety gates. See
+`docs/arbbot-action-environment.md`.
+
 ## 11. Context Acquisition Strategy
 
 yizhi should acquire user context in layers:
