@@ -12,6 +12,11 @@ hold durable intentions, maintain a self-model, appraise the world through
 internal drives, act through tools, learn from feedback, and create externally
 verifiable value under human-governed constraints.
 
+The theoretical foundation is defined in `docs/theory-of-will.md`: thought
+stream gives will raw material, memory gives continuity, drive gives direction,
+intention gives commitment, action gives reality, feedback gives growth, and
+governance makes will usable.
+
 The project must not become another chat surface, IDE assistant, prompt persona,
 or generic agent framework. Cursor helps humans write code. Claude and ChatGPT
 are model/dialog interfaces with tools. LangGraph, Letta, and Mem0 are useful
@@ -68,6 +73,18 @@ The project should reject these false positives:
 Functional will is the governed capacity to maintain and revise intentions over
 time, select actions from internal drives and world state, create externally
 verifiable value, learn from outcomes, and preserve safe continuity of self.
+
+This definition depends on three necessary conditions:
+
+1. continuous thought stream: the system can generate and appraise internal
+   candidates without waiting for direct user prompts;
+2. memory continuity: the system can preserve context, self, commitments, and
+   lessons across time;
+3. action embedding: the system can affect an environment and receive feedback,
+   rather than remaining a brain in a vat.
+
+It also requires drive and governance. Without drive, thought and memory do not
+become initiative. Without governance, initiative becomes unsafe automation.
 
 For engineering purposes, yizhi decomposes will into ten properties:
 

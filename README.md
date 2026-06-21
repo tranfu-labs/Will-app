@@ -10,6 +10,7 @@ The project is currently a research base, not an application runtime.
 |---|---|
 | `RESEARCH.md` | Foundation research report for autonomous agents, memory, identity, proactive behavior, and market context. |
 | `docs/strategy-deep-dive.md` | Product/strategy deep dive around private personal agency and governed memory. |
+| `docs/theory-of-will.md` | Theoretical foundation: how will emerges from thought stream, memory, drive, intention, action, feedback, and governance. |
 | `docs/will-engine-whitepaper.md` | yizhi's working thesis: definition of functional will, WillState, Autonomous Value Loops, and safety doctrine. |
 | `docs/technical-stack-rfc.md` | Technical stack decision record for Will Engine v0. |
 | `docs/evaluation-protocol.md` | Evaluation protocol for will maturity, value loops, drift, resource discipline, and governed reproduction. |
@@ -73,4 +74,6 @@ or opportunity, forms an intention, plans, acts, verifies external value,
 captures feedback, updates memory/skill/policy, and improves future behavior.
 
 See `docs/will-engine-whitepaper.md` and `docs/evaluation-protocol.md` for the
-current doctrine.
+current doctrine. See `docs/theory-of-will.md` for the upstream theory of how
+will emerges from thought stream, memory continuity, drive, intention, action,
+feedback, and governance.

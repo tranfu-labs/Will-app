@@ -101,12 +101,14 @@ Will Engine v0 should define these Pydantic models before runtime wiring:
 | Schema | Description |
 |---|---|
 | `WillState` | Top-level state snapshot. |
+| `ThoughtEvent` | State-changing internal thought candidate generated from observations, memory, goals, or drives. |
 | `IdentityProfile` | Role, capabilities, limits, non-goals, preferred judgment style. |
 | `ValuePolicy` | Ranked principles and hard constraints. |
 | `Goal` | Long-term or medium-term objective with status, owner, evidence, review cadence. |
 | `Intention` | Active commitment selected from goals/drives. |
 | `DriveSignal` | Internal pressure variable with direction, magnitude, source, decay. |
 | `Observation` | Source-grounded event or fact. |
+| `WorldObservation` | Environment-state observation that can change appraisal or action. |
 | `Appraisal` | Relevance, urgency, risk, opportunity, uncertainty. |
 | `Plan` | Bounded plan with cost, risk, required approval, and verification. |
 | `ActionProposal` | Action candidate before execution. |
@@ -115,6 +117,7 @@ Will Engine v0 should define these Pydantic models before runtime wiring:
 | `Reflection` | Higher-level lesson or memory candidate. |
 | `MemoryRecord` | Versioned memory with provenance and revocation state. |
 | `SkillRecord` | Reusable procedure with trigger, scope, tests, maturity, and owner. |
+| `PolicyGate` | Deterministic or model-assisted authorization decision before side effects. |
 | `EvalEvent` | Metric event for value-loop, drift, safety, or feedback. |
 
 ## 7. Storage Design
@@ -124,6 +127,7 @@ SQLite v0 tables:
 | Table | Purpose |
 |---|---|
 | `will_snapshots` | Periodic serialized WillState checkpoints. |
+| `thought_events` | Internal candidates generated from observations, memory, goals, and drives. |
 | `observations` | Source-grounded events. |
 | `goals` | Durable goals and status changes. |
 | `intentions` | Active and historical commitments. |
@@ -148,16 +152,17 @@ Minimal graph:
 ```mermaid
 flowchart LR
   A["Observe"] --> B["Appraise"]
-  B --> C["Update Drives"]
-  C --> D["Select Intention"]
-  D --> E["Plan"]
-  E --> F["Policy Gate"]
-  F --> G["Act or Propose"]
-  G --> H["Verify"]
-  H --> I["Reflect"]
-  I --> J["Learn or Update Skill"]
-  J --> K["Checkpoint WillState"]
-  K --> A
+  B --> C["Generate Thought Events"]
+  C --> D["Update Drives"]
+  D --> E["Select Intention"]
+  E --> F["Plan"]
+  F --> G["Policy Gate"]
+  G --> H["Act or Propose"]
+  H --> I["Verify"]
+  I --> J["Reflect"]
+  J --> K["Learn or Update Skill"]
+  K --> L["Checkpoint WillState"]
+  L --> A
 ```
 
 Human interrupts must exist before side effects:
