@@ -221,7 +221,8 @@ def test_store_consolidate_produces_semantic_memory():
 
 
 def test_memory_layer_does_not_import_mem0():
-    # The deterministic v0 default must never pull in the optional Mem0 dependency.
+    # Mem0 was evaluated and dropped (the governed economy here is richer than a generic
+    # vector store); the memory layer must never pull it back in. See docs/memory-fork-strategy.md.
     assert "mem0" not in sys.modules
 
 

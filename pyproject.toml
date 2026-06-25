@@ -16,9 +16,6 @@ dependencies = [
 dev = [
   "pytest>=8",
 ]
-memory = [
-  "mem0ai>=0.1.0",
-]
 llm = [
   "openai>=1.0",
 ]

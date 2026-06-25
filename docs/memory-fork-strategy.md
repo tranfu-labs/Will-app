@@ -1,12 +1,22 @@
 # Memory Fork Strategy
 
-> Status: decision record
+> Status: decision record — **SUPERSEDED (2026-06-25)**
 > Date: 2026-06-21
 > Purpose: decide which mature open-source memory project yizhi should fork/extend
 > as the base for its memory system, instead of building from scratch. Based on a
 > deep fork-ability deep-dive of four candidates (Mem0, Letta, Graphiti, cognee).
 
-## 0. Decision (TL;DR)
+> **UPDATE (2026-06-25) — decision reversed: yizhi does NOT use Mem0.**
+> The governance modules below (salience-at-encoding, adaptive forgetting,
+> consolidation, will-ranking) were built and tested directly on a local in-memory /
+> SQLite backend. In practice that governed economy is *richer* than what a generic
+> vector store (Mem0 included) provides in the dimensions that matter here — salience,
+> bi-temporal supersession, governed forgetting — so renting Mem0 would either
+> duplicate or fight it. The `Mem0Backend` stub and the `memory` extra were removed;
+> the patterns to graft (bi-temporal validity, consolidation cadence) were absorbed
+> as our own code. The candidate analysis below is kept for the historical rationale.
+
+## 0. Original decision (TL;DR) — see UPDATE above; no longer in effect
 
 > **Base = Mem0, extended (not hard-forked) behind yizhi's own will-governed
 > schema.** Graft the bi-temporal validity pattern from Graphiti and the

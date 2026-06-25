@@ -3,7 +3,7 @@
 The store owns the three processes that distinguish memory from storage
 (docs/theory-of-memory.md): salience-at-encoding on `remember`, will-governed
 ranking on `recall`, consolidation on `consolidate`, and adaptive forgetting on
-`forget_pass`. The backend (local by default, Mem0 optional) only stores and
+`forget_pass`. The backend (local in-memory or SQLite) only stores and
 returns records. Deterministic v0: no LLM, no network; pass `now_ts` for
 reproducible decay.
 """

@@ -1,10 +1,10 @@
 """Pluggable memory backends.
 
 yizhi owns the memory *economy* (salience, decay, consolidation, will-ranking);
-the backend rents the storage/retrieval *infrastructure*. The v0 default is a
-local deterministic store with no LLM and no network. Mem0 is an optional backend
-behind the same Protocol, imported lazily, so the deterministic runtime never
-requires it. See docs/memory-fork-strategy.md.
+the backend rents the storage/retrieval *infrastructure*. Two backends sit behind
+one Protocol: a local in-memory store and a SQLite store, both deterministic with
+no LLM and no network. (A Mem0 backend was evaluated and dropped — the governed
+economy here is richer than a generic vector store; see docs/memory-fork-strategy.md.)
 """
 
 from __future__ import annotations
@@ -179,43 +179,3 @@ class SqliteMemoryBackend:
                 memory_ids,
             ).fetchall()
         return {row["memory_id"]: json.loads(row["vector_json"]) for row in rows}
-
-
-class Mem0Backend:
-    """Optional backend that rents Mem0 storage/retrieval behind yizhi's schema.
-
-    Mem0 is an optional dependency (`pip install yizhi[memory]`) and is imported
-    lazily here so the deterministic v0 runtime and its tests never require it.
-    yizhi keeps the governance economy; Mem0 supplies extraction, embeddings, and
-    vector recall. The MemoryRecord <-> Mem0 payload mapping is the integration
-    seam to flesh out next; see docs/memory-fork-strategy.md sec 6 and sec 9.
-    """
-
-    def __init__(self, config: dict | None = None) -> None:
-        try:
-            from mem0 import Memory  # type: ignore import-not-found
-        except ImportError as exc:  # pragma: no cover - exercised only with extra installed
-            raise ImportError(
-                "Mem0Backend requires the optional 'memory' extra: pip install yizhi[memory]"
-            ) from exc
-        self._memory = Memory.from_config(config) if config else Memory()
-
-    def _seam(self) -> None:  # pragma: no cover - documented seam, not yet wired
-        raise NotImplementedError(
-            "Mem0 <-> MemoryRecord mapping is a documented seam; see docs/memory-fork-strategy.md"
-        )
-
-    def add(self, record: MemoryRecord) -> MemoryRecord:  # pragma: no cover
-        self._seam()
-
-    def get(self, memory_id: str) -> MemoryRecord | None:  # pragma: no cover
-        self._seam()
-
-    def update(self, record: MemoryRecord) -> MemoryRecord:  # pragma: no cover
-        self._seam()
-
-    def delete(self, memory_id: str) -> None:  # pragma: no cover
-        self._seam()
-
-    def all(self) -> list[MemoryRecord]:  # pragma: no cover
-        self._seam()
