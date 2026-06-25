@@ -12,7 +12,7 @@ from yizhi.core.schemas import Goal, Plan, PlanStep, PlanStepStatus, WillState
 from yizhi.engine.goals import decompose_goal
 from yizhi.engine.loop import _plan_depth, run_step
 from yizhi.engine.planning import choose_proposal
-from yizhi.environments.arbbot import ArbBotEnvironment
+from yizhi.environments.arbbot import ArbBotEnvironment, DEFAULT_ARBBOT_ROOT
 from yizhi.state.snapshots import load_or_create_state
 
 
@@ -113,6 +113,9 @@ def test_run_step_offline_creates_no_plan(tmp_path):
 
 
 def test_plan_persists_and_cursor_advances_across_loops(tmp_path, monkeypatch):
+    import pytest
+    if not DEFAULT_ARBBOT_ROOT.exists():
+        pytest.skip("ArbBot repo not present (runs a real experiment action)")
     proposals = _proposals()
     exp_idx = next(i for i, p in enumerate(proposals) if p.experiment)
     # ScriptedLLM: keep the goal, pick the experiment, produce a NEW finding each loop
@@ -152,6 +155,9 @@ def test_plan_persists_and_cursor_advances_across_loops(tmp_path, monkeypatch):
 
 
 def test_stall_triggers_replan_and_keeps_memory(tmp_path, monkeypatch):
+    import pytest
+    if not DEFAULT_ARBBOT_ROOT.exists():
+        pytest.skip("ArbBot repo not present (runs a real action)")
     proposals = _proposals()
     routine_idx = next(i for i, p in enumerate(proposals) if not p.experiment)
     # Pick a routine action => no finding => produced_new False => no progress => stall rises.
@@ -279,3 +285,38 @@ def test_authored_backtest_runs_an_env_unenumerated_threshold_end_to_end(tmp_pat
     started = [e for e in list_events(path=db, event_type="ActionStarted")]
     cmds = [e.get("payload", {}).get("command", []) for e in started]
     assert any("min_net_bps=5" in " ".join(c) for c in cmds)            # authored threshold ran through both walls
+
+
+def test_backtest_verdict_is_the_finding_and_small_sample_earns_no_bonus(tmp_path, monkeypatch):
+    # P0 judgment: a backtest's DETERMINISTIC verdict (not an LLM reading of stdout) becomes the
+    # ledger finding and fires a JudgmentRendered event. EDGEY enter-all enters 18 windows at
+    # 100% win / +90 bps — which is judged INSUFFICIENT (< 20), so it earns NO knowledge bonus.
+    # This is the economy fix: a lucky small sample no longer reads as an edge.
+    import pytest
+
+    from yizhi.environments.arbbot import ArbBotEnvironment, DEFAULT_ARBBOT_ROOT
+    from yizhi.memory.backends import SqliteMemoryBackend
+    from yizhi.state.store import list_events
+
+    if not DEFAULT_ARBBOT_ROOT.exists():
+        pytest.skip("ArbBot repo not present (backtest probe imports it)")
+
+    class Authoring(ScriptedLLM):
+        def complete_json(self, system, user):
+            if "authoring one concrete" in system.lower():
+                return {"symbol": "EDGEY", "min_net_bps": -1000, "horizon_hours": 24, "rationale": "baseline"}
+            return super().complete_json(system, user)
+
+    db = tmp_path / "j.sqlite"
+    state = load_or_create_state(db)
+    state.vision = "Find a funding-diff edge."
+    monkeypatch.setattr("yizhi.engine.loop.load_llm", lambda: Authoring(choice=0))
+    env = ArbBotEnvironment(funding_cache=_write_edgey_cache(tmp_path))
+    run_step(env, state, db)
+
+    assert list_events(path=db, event_type="JudgmentRendered")          # the oracle's verdict was rendered
+    ledger = [m for m in SqliteMemoryBackend(db).all(live_only=True) if m.kind == "arbbot:experiment"]
+    assert ledger and ledger[0].content.startswith("[INSUFFICIENT]")    # 18 windows -> not an edge, by rule
+    # a non-conclusive verdict earns no knowledge bonus: the only replenishment is the FULL
+    # status gain, so spinning on small/unproven samples cannot inflate the budget.
+    assert len(list_events(path=db, event_type="BudgetReplenished")) == 1

@@ -101,6 +101,8 @@ def test_arbbot_backtest_uses_real_cached_data_and_reports_persistence(tmp_path)
     assert edgey.exit_code == 0
     for token in ("sharpe_like=", "total_realized_bps=", "calibration_verdict=", "persistence_sign_stability="):
         assert token in edgey.stdout
+    # structured metrics are carried first-class (so the judge never re-parses stdout)
+    assert edgey.metrics and {"n_entered", "n_windows", "sharpe_like", "total_realized_bps", "persistence_sign_stability"} <= set(edgey.metrics)
     assert float(_tok(edgey.stdout, "persistence_sign_stability")) == 1.0   # constant diff -> fully sign-stable
     # EDGEY's fat persistent funding diff captures more than FLAT's ~zero diff
     assert float(_tok(edgey.stdout, "total_realized_bps")) > float(_tok(by_symbol["FLAT"].stdout, "total_realized_bps"))

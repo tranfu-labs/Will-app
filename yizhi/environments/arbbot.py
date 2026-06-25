@@ -279,6 +279,21 @@ class ArbBotEnvironment:
             spec = build_funding_diff_spec(min_net_bps=min_net, horizon_hours=horizon, max_hold_hours=Decimal("72"))
             res = backtest_spec(spec, earn, hedge, observation_ts=datetime.now(timezone.utc))
             m = res.metrics
+            # Structured metrics carried first-class on the ActionRecord so the deterministic
+            # judge (engine/judgment.py) never re-parses this string. n_entered/n_windows are
+            # the sample size — the gate that tells a real edge from one lucky window.
+            metrics = {
+                "n_windows": float(res.n_windows),
+                "n_entered": float(res.n_entered),
+                "sharpe_like": float(m.sharpe_like),
+                "win_rate": float(m.win_rate),
+                "max_drawdown_bps": float(m.max_drawdown_bps),
+                "total_realized_bps": float(m.total_realized_bps),
+                "persistence_sign_stability": float(sign_stability),
+                "min_net_bps": float(min_net),
+                "symbol": symbol,
+                "calibration_verdict": getattr(res.calibration.verdict, "value", res.calibration.verdict),
+            }
             stdout = (
                 f"backtest funding_diff symbol={symbol} (REAL Binance/Bybit, n={len(ts)} periods, iv={iv}h, "
                 f"min_net_bps={min_net}): n_windows={res.n_windows} n_entered={res.n_entered} "
@@ -290,7 +305,7 @@ class ArbBotEnvironment:
             return ActionRecord(
                 proposal_id=proposal.id, environment=proposal.environment,
                 status=ActionStatus.SUCCEEDED, command=list(proposal.command), exit_code=0,
-                stdout=stdout, stderr="",
+                stdout=stdout, stderr="", metrics=metrics,
             )
         except Exception as exc:
             return ActionRecord(

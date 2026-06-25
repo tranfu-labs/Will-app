@@ -102,6 +102,7 @@ class EventType(StrEnum):
     PLAN_REPLANNED = "PlanReplanned"
     CRITIQUE_RAISED = "CritiqueRaised"
     HYPOTHESIS_AUTHORED = "HypothesisAuthored"
+    JUDGMENT_RENDERED = "JudgmentRendered"
     ROLLBACK_REQUESTED = "RollbackRequested"
     ROLLBACK_COMPLETED = "RollbackCompleted"
     INTENTION_RETIRED = "IntentionRetired"
@@ -344,6 +345,9 @@ class ActionRecord(YizhiModel):
     stdout: str = ""
     stderr: str = ""
     error: str | None = None
+    # Structured action metrics (e.g. a backtest's sharpe/win/drawdown/n_entered),
+    # carried first-class so deterministic judgment never re-parses stdout text.
+    metrics: dict | None = None
 
 
 class VerificationResult(YizhiModel):

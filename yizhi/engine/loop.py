@@ -41,6 +41,7 @@ from yizhi.engine.budget import (
 from yizhi.engine.calibration import brier, predict_value, summarize_calibration
 from yizhi.engine.critique import critique_memory, generate_critique
 from yizhi.engine.hypothesis import author_backtest
+from yizhi.engine.judgment import CONCLUSIVE, judge_backtest, judgment_finding
 from yizhi.engine.memory import (
     CONSOLIDATE_EVERY,
     build_memory_store,
@@ -414,14 +415,27 @@ def run_step(env: ActionEnvironment, state: WillState, db_path: str | Path) -> L
     # experiment probes, so routine checks (git status, safety) neither pollute the
     # ledger nor earn the replenishment. Re-running the same probe supersedes the
     # prior finding so the ledger stays current; grounded to the command.
-    finding = (
-        extract_finding(
+    #
+    # When the action produced structured backtest metrics, a DETERMINISTIC judgment
+    # (kill/iterate/promote/insufficient by fixed rules) is the finding — the verdict, not an
+    # LLM's reading of stdout, is what enters the ledger. This is what stops a single lucky
+    # window (n_entered=1) being recorded as an edge. Other experiment probes keep the LLM
+    # extraction.
+    judgment = judge_backtest(action_record.metrics) if action_record else None
+    if judgment is not None:
+        _append(
+            db_path, EventType.JUDGMENT_RENDERED, "judgment", action_record.id,
+            {"verdict": judgment.verdict.value, "confidence": judgment.confidence, "reasons": judgment.reasons},
+            loop_id, event_ids=event_ids,
+        )
+        finding = judgment_finding(judgment)
+    elif proposal.experiment:
+        finding = extract_finding(
             llm, action_record, verification,
             on_fallback=_llm_fallback_sink(db_path, loop_id, event_ids, "finding"),
         )
-        if proposal.experiment
-        else None
-    )
+    else:
+        finding = None
     produced_new = False
     if finding is not None:
         subject = probe_subject(action_record.command) if action_record else None
@@ -444,10 +458,12 @@ def run_step(env: ActionEnvironment, state: WillState, db_path: str | Path) -> L
             signals=derive_signals(finding, state, drive_relevance=drive_rel),
         )
         state.memory_ids.append(finding_memory.id)
-        # Stake closes: producing genuinely NEW edge-knowledge replenishes the
-        # budget; re-confirming what is already known does not — so spinning on a
-        # known probe is net-negative and presses the agent toward new work.
-        produced_new = is_new_knowledge(prior, finding)
+        # Stake closes ONLY on conclusive knowledge: a confirmed edge (PROMOTE) or a confirmed
+        # dead end (KILL) is genuine value and pays; an INSUFFICIENT/ITERATE backtest is not yet
+        # knowledge and must NOT replenish, or the economy would reward noise (e.g. a single
+        # lucky window). Non-backtest findings (judgment is None) keep the novelty-only rule.
+        conclusive = judgment is None or judgment.verdict in CONCLUSIVE
+        produced_new = is_new_knowledge(prior, finding) and conclusive
         if produced_new:
             state.budget = replenish(state.budget, KNOWLEDGE_REPLENISH)
             _append(db_path, EventType.BUDGET_REPLENISHED, "budget", state.id, state.budget, loop_id, event_ids=event_ids)
