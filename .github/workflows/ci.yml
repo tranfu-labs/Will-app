@@ -1,0 +1,30 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.11", "3.12", "3.13"]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Install (base + dev only — no LLM/embedding extras)
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e ".[dev]"
+      - name: Run the offline test suite
+        # conftest.py forces the LLM and embedder OFF, so the suite is deterministic and
+        # needs no network or API key. Tests that drive a real ArbBot action skip cleanly
+        # when the ArbBot repo is absent (as it is in CI). This is the autonomous-engineering
+        # acceptance gate: the will-loop's deterministic core must stay green on every push.
+        run: pytest -q
