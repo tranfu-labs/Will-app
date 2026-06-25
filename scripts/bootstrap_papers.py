@@ -184,7 +184,11 @@ def main() -> int:
             filename = f"{item.get('year', 'unknown')}-{slugify(item['id'])}.pdf"
             local_path = PDF_DIR / filename
             print(f"[{index:02d}/{len(items):02d}] {item['id']}")
-            status, error = download_pdf(item["pdf_url"], local_path, force=force)
+            pdf_url = item.get("pdf_url") or ""
+            if not pdf_url:
+                status, error = "skipped", "no pdf_url in manifest (landing page only)"
+            else:
+                status, error = download_pdf(pdf_url, local_path, force=force)
             if error:
                 print(f"  {status}: {error}")
             else:

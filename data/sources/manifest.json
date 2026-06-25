@@ -4,7 +4,12 @@
     "title": "Intention",
     "source_type": "encyclopedia",
     "url": "https://plato.stanford.edu/entries/intention/",
-    "themes": ["intention", "philosophy", "will-theory", "practical-reasoning"],
+    "themes": [
+      "intention",
+      "philosophy",
+      "will-theory",
+      "practical-reasoning"
+    ],
     "priority": "core",
     "notes": "Useful philosophical grounding for intention as commitment, planning, and action guidance."
   },
@@ -13,7 +18,11 @@
     "title": "Practical Reason",
     "source_type": "encyclopedia",
     "url": "https://plato.stanford.edu/entries/practical-reason/",
-    "themes": ["practical-reasoning", "agency", "will-theory"],
+    "themes": [
+      "practical-reasoning",
+      "agency",
+      "will-theory"
+    ],
     "priority": "core",
     "notes": "Grounding for reasoning about what to do, not merely what is true."
   },
@@ -22,7 +31,12 @@
     "title": "Intention, Plans, and Practical Reason",
     "source_type": "book",
     "url": "https://press.uchicago.edu/ucp/books/book/chicago/I/bo3644764.html",
-    "themes": ["intention", "planning", "commitment", "will-theory"],
+    "themes": [
+      "intention",
+      "planning",
+      "commitment",
+      "will-theory"
+    ],
     "priority": "core",
     "notes": "Book-length foundation for treating intention as durable commitment and plan governance."
   },
@@ -31,7 +45,12 @@
     "title": "Active Inference: The Free Energy Principle in Mind, Brain, and Behavior",
     "source_type": "book",
     "url": "https://mitpress.mit.edu/9780262045353/active-inference/",
-    "themes": ["active-inference", "free-energy-principle", "agency", "homeostasis"],
+    "themes": [
+      "active-inference",
+      "free-energy-principle",
+      "agency",
+      "homeostasis"
+    ],
     "priority": "foundation",
     "notes": "Reference book for active inference; do not store full copyrighted text in repo."
   },
@@ -40,16 +59,116 @@
     "title": "Autopoiesis and Cognition: The Realization of the Living",
     "source_type": "book",
     "url": "https://link.springer.com/book/10.1007/978-94-009-8947-4",
-    "themes": ["autopoiesis", "self-maintenance", "life", "agency", "will-theory"],
+    "themes": [
+      "autopoiesis",
+      "self-maintenance",
+      "life",
+      "agency",
+      "will-theory"
+    ],
     "priority": "foundation",
     "notes": "Conceptual source for self-producing systems; use carefully as inspiration, not direct engineering proof."
+  },
+  {
+    "id": "sep-free-will",
+    "title": "Free Will",
+    "source_type": "encyclopedia",
+    "url": "https://plato.stanford.edu/entries/freewill/",
+    "themes": [
+      "free-will",
+      "volition",
+      "agency",
+      "will-theory",
+      "philosophy"
+    ],
+    "priority": "core",
+    "notes": "Survey of the major positions on what it means for a will to be free; clarifies why yizhi's functional will need not settle the metaphysical free-will debate."
+  },
+  {
+    "id": "sep-action",
+    "title": "Action",
+    "source_type": "encyclopedia",
+    "url": "https://plato.stanford.edu/entries/action/",
+    "themes": [
+      "action",
+      "agency",
+      "intention",
+      "will-theory",
+      "philosophy"
+    ],
+    "priority": "core",
+    "notes": "Grounding for the gap between mere bodily movement and genuine action done for reasons; relevant to action embedding and intention as commitment."
+  },
+  {
+    "id": "sep-embodied-cognition",
+    "title": "Embodied Cognition",
+    "source_type": "encyclopedia",
+    "url": "https://plato.stanford.edu/entries/embodied-cognition/",
+    "themes": [
+      "enactivism",
+      "embodied-cognition",
+      "sense-making",
+      "autopoiesis",
+      "will-theory"
+    ],
+    "priority": "foundation",
+    "notes": "Entry point to enactivism and sense-making: cognition and value arise from a precarious, self-maintaining body coupled to its world, not from disembodied token processing."
+  },
+  {
+    "id": "sep-schopenhauer",
+    "title": "Arthur Schopenhauer",
+    "source_type": "encyclopedia",
+    "url": "https://plato.stanford.edu/entries/schopenhauer/",
+    "themes": [
+      "will",
+      "schopenhauer",
+      "philosophy-of-will",
+      "metaphysics"
+    ],
+    "priority": "foundation",
+    "notes": "Schopenhauer's Wille: will as blind striving prior to representation. Historical root of treating will, not cognition, as primary; used as contrast and lineage, not as engineering model."
+  },
+  {
+    "id": "sep-nietzsche",
+    "title": "Friedrich Nietzsche",
+    "source_type": "encyclopedia",
+    "url": "https://plato.stanford.edu/entries/nietzsche/",
+    "themes": [
+      "will-to-power",
+      "nietzsche",
+      "philosophy-of-will",
+      "drive"
+    ],
+    "priority": "context",
+    "notes": "Will to power as striving to grow and overcome, not merely to persist; relevant to yizhi's growth/reproduction ambition. Note the textual controversy around the posthumous 'Will to Power' compilation."
+  },
+  {
+    "id": "thompson-mind-in-life-book",
+    "title": "Mind in Life: Biology, Phenomenology, and the Sciences of Mind",
+    "source_type": "book",
+    "url": "https://www.hup.harvard.edu/books/9780674025110",
+    "themes": [
+      "enactivism",
+      "autopoiesis",
+      "sense-making",
+      "life-mind-continuity",
+      "will-theory"
+    ],
+    "priority": "foundation",
+    "notes": "Evan Thompson's synthesis of the enactive life-mind continuity thesis: the same self-producing dynamics that keep an organism alive are the root of mind and concern. Inspiration, not engineering proof; do not store full copyrighted text in repo."
   },
   {
     "id": "langgraph-docs",
     "title": "LangGraph Documentation",
     "source_type": "official-docs",
     "url": "https://docs.langchain.com/oss/python/langgraph/overview",
-    "themes": ["langgraph", "workflow", "checkpointing", "human-in-loop", "agent-runtime"],
+    "themes": [
+      "langgraph",
+      "workflow",
+      "checkpointing",
+      "human-in-loop",
+      "agent-runtime"
+    ],
     "priority": "core",
     "notes": "Candidate workflow spine for stateful, durable, interruptible agent loops."
   },
@@ -58,7 +177,12 @@
     "title": "langchain-ai/langgraph",
     "source_type": "github",
     "url": "https://github.com/langchain-ai/langgraph",
-    "themes": ["langgraph", "stateful-agent", "workflow", "open-source"],
+    "themes": [
+      "langgraph",
+      "stateful-agent",
+      "workflow",
+      "open-source"
+    ],
     "priority": "core",
     "notes": "GitHub snapshot checked 2026-06-21: MIT, ~35k stars, active. Reuse as orchestration substrate, not as WillState."
   },
@@ -67,7 +191,13 @@
     "title": "Letta Documentation",
     "source_type": "official-docs",
     "url": "https://docs.letta.com/",
-    "themes": ["letta", "memgpt", "stateful-agent", "memory", "identity"],
+    "themes": [
+      "letta",
+      "memgpt",
+      "stateful-agent",
+      "memory",
+      "identity"
+    ],
     "priority": "core",
     "notes": "Reference for stateful agents, core memory, archival memory, and agent-managed memory tools."
   },
@@ -76,7 +206,12 @@
     "title": "letta-ai/letta",
     "source_type": "github",
     "url": "https://github.com/letta-ai/letta",
-    "themes": ["letta", "memory", "stateful-agent", "open-source"],
+    "themes": [
+      "letta",
+      "memory",
+      "stateful-agent",
+      "open-source"
+    ],
     "priority": "core",
     "notes": "GitHub snapshot checked 2026-06-21: Apache-2.0, ~23k stars, active."
   },
@@ -85,7 +220,12 @@
     "title": "Mem0 Documentation",
     "source_type": "official-docs",
     "url": "https://docs.mem0.ai/",
-    "themes": ["mem0", "memory", "agent-infrastructure", "personalization"],
+    "themes": [
+      "mem0",
+      "memory",
+      "agent-infrastructure",
+      "personalization"
+    ],
     "priority": "core",
     "notes": "Reference memory layer for AI agents; useful as adapter candidate after yizhi owns memory governance schema."
   },
@@ -94,16 +234,71 @@
     "title": "mem0ai/mem0",
     "source_type": "github",
     "url": "https://github.com/mem0ai/mem0",
-    "themes": ["mem0", "memory", "open-source", "agent-infrastructure"],
+    "themes": [
+      "mem0",
+      "memory",
+      "open-source",
+      "agent-infrastructure"
+    ],
     "priority": "core",
     "notes": "GitHub snapshot checked 2026-06-21: Apache-2.0, ~58k stars, active."
+  },
+  {
+    "id": "graphiti-github",
+    "title": "getzep/graphiti",
+    "source_type": "github",
+    "url": "https://github.com/getzep/graphiti",
+    "themes": [
+      "memory",
+      "temporal-knowledge-graph",
+      "agent-memory",
+      "open-source"
+    ],
+    "priority": "core",
+    "notes": "Zep's temporal knowledge-graph memory engine: facts carry validity windows, hybrid semantic+BM25+graph retrieval. Per 2026-06 landscape scan: Apache-2.0, thousands of stars, active. Strong temporal pattern; lacks decay/salience."
+  },
+  {
+    "id": "hipporag-github",
+    "title": "OSU-NLP-Group/HippoRAG",
+    "source_type": "github",
+    "url": "https://github.com/OSU-NLP-Group/HippoRAG",
+    "themes": [
+      "memory",
+      "retrieval",
+      "hippocampal-indexing",
+      "knowledge-graph",
+      "open-source"
+    ],
+    "priority": "foundation",
+    "notes": "Reference implementation of hippocampal-indexing retrieval (KG + Personalized PageRank). Per 2026-06 landscape scan: MIT, a few thousand stars, less active. Useful retrieval signal, not a full memory lifecycle."
+  },
+  {
+    "id": "cognee-github",
+    "title": "topoteretes/cognee",
+    "source_type": "github",
+    "url": "https://github.com/topoteretes/cognee",
+    "themes": [
+      "memory",
+      "graph-memory",
+      "consolidation",
+      "pipeline",
+      "open-source"
+    ],
+    "priority": "foundation",
+    "notes": "Graph+vector memory with an Add -> Cognify -> Memify pipeline (Memify prunes stale nodes and reweights edges incrementally). Per 2026-06 landscape scan: Apache-2.0, active. Memify is a reusable graph-hygiene pattern; no explicit decay curve or salience."
   },
   {
     "id": "openai-agents-sdk-docs",
     "title": "OpenAI Agents SDK Documentation",
     "source_type": "official-docs",
     "url": "https://openai.github.io/openai-agents-python/",
-    "themes": ["agents-sdk", "tools", "handoffs", "guardrails", "tracing"],
+    "themes": [
+      "agents-sdk",
+      "tools",
+      "handoffs",
+      "guardrails",
+      "tracing"
+    ],
     "priority": "foundation",
     "notes": "Useful provider/tool runtime reference; should remain an adapter boundary rather than yizhi's core cognition."
   },
@@ -112,7 +307,12 @@
     "title": "MineDojo/Voyager",
     "source_type": "github",
     "url": "https://github.com/MineDojo/Voyager",
-    "themes": ["voyager", "skill-library", "open-ended-agent", "embodiment"],
+    "themes": [
+      "voyager",
+      "skill-library",
+      "open-ended-agent",
+      "embodiment"
+    ],
     "priority": "core",
     "notes": "GitHub snapshot checked 2026-06-21: MIT, ~7k stars. Strong reference for automatic curriculum and skill library."
   },
@@ -121,7 +321,12 @@
     "title": "jennyzzt/dgm",
     "source_type": "github",
     "url": "https://github.com/jennyzzt/dgm",
-    "themes": ["darwin-godel-machine", "self-improvement", "sandbox", "evolution"],
+    "themes": [
+      "darwin-godel-machine",
+      "self-improvement",
+      "sandbox",
+      "evolution"
+    ],
     "priority": "core",
     "notes": "GitHub snapshot checked 2026-06-21: ~2k stars, active. Useful for sandboxed self-improvement patterns and risks."
   },
@@ -130,7 +335,12 @@
     "title": "caixd-220529/LifelongAgentBench",
     "source_type": "github",
     "url": "https://github.com/caixd-220529/LifelongAgentBench",
-    "themes": ["lifelong-learning", "benchmark", "evaluation", "agent"],
+    "themes": [
+      "lifelong-learning",
+      "benchmark",
+      "evaluation",
+      "agent"
+    ],
     "priority": "foundation",
     "notes": "Benchmark repo for evaluating skill accumulation and transfer over time."
   },
@@ -139,7 +349,12 @@
     "title": "Measuring AI Ability to Complete Long Tasks",
     "source_type": "benchmark",
     "url": "https://metr.org/blog/2025-03-19-measuring-ai-ability-to-complete-long-tasks/",
-    "themes": ["long-horizon", "evaluation", "reliability", "agent-limits"],
+    "themes": [
+      "long-horizon",
+      "evaluation",
+      "reliability",
+      "agent-limits"
+    ],
     "priority": "core",
     "notes": "Reality check for long-horizon task reliability; informs bounded loops and checkpointing."
   },
@@ -148,7 +363,12 @@
     "title": "Specification gaming: the flip side of AI ingenuity",
     "source_type": "blog",
     "url": "https://deepmind.google/discover/blog/specification-gaming-the-flip-side-of-ai-ingenuity/",
-    "themes": ["ai-safety", "specification-gaming", "evaluation", "alignment"],
+    "themes": [
+      "ai-safety",
+      "specification-gaming",
+      "evaluation",
+      "alignment"
+    ],
     "priority": "safety",
     "notes": "Important safety pattern for autonomous value-loop metrics: avoid rewarding proxies that corrupt the goal."
   },
@@ -157,7 +377,12 @@
     "title": "Cursor",
     "source_type": "product",
     "url": "https://cursor.com/",
-    "themes": ["competition", "coding-agent", "ide", "differentiation"],
+    "themes": [
+      "competition",
+      "coding-agent",
+      "ide",
+      "differentiation"
+    ],
     "priority": "context",
     "notes": "Reference competitor boundary: Cursor is an IDE/coding workflow surface, not a general will engine."
   },
@@ -166,7 +391,12 @@
     "title": "Claude",
     "source_type": "product",
     "url": "https://claude.ai/",
-    "themes": ["competition", "model-interface", "chat", "differentiation"],
+    "themes": [
+      "competition",
+      "model-interface",
+      "chat",
+      "differentiation"
+    ],
     "priority": "context",
     "notes": "Reference competitor boundary: Claude is a model/chat/tool interface; yizhi should own persistent will state and value loops."
   },
@@ -175,7 +405,12 @@
     "title": "tmstack/awesome-persona-skills",
     "source_type": "github",
     "url": "https://github.com/tmstack/awesome-persona-skills",
-    "themes": ["persona-skill", "nuwa-skill", "identity", "decision-lens"],
+    "themes": [
+      "persona-skill",
+      "nuwa-skill",
+      "identity",
+      "decision-lens"
+    ],
     "priority": "context",
     "notes": "GitHub snapshot checked 2026-06-21: active persona-skill list with 女娲.skill references; useful as persona research context, not as Will Engine architecture."
   },
@@ -184,7 +419,12 @@
     "title": "alchaincyf/zhangxuefeng-skill",
     "source_type": "github",
     "url": "https://github.com/alchaincyf/zhangxuefeng-skill",
-    "themes": ["persona-skill", "nuwa-skill", "decision-lens", "cognitive-operating-system"],
+    "themes": [
+      "persona-skill",
+      "nuwa-skill",
+      "decision-lens",
+      "cognitive-operating-system"
+    ],
     "priority": "context",
     "notes": "GitHub snapshot checked 2026-06-21: high-visibility persona skill; illustrates demand and limitations of cognitive-operation-system packaging."
   },
@@ -193,8 +433,68 @@
     "title": "Panmax/awesome-nuwa",
     "source_type": "github",
     "url": "https://github.com/Panmax/awesome-nuwa",
-    "themes": ["nuwa-skill", "persona-skill", "awesome-list"],
+    "themes": [
+      "nuwa-skill",
+      "persona-skill",
+      "awesome-list"
+    ],
     "priority": "context",
     "notes": "Awesome list for 女娲.skill outputs; useful for tracking the persona-distillation ecosystem."
+  },
+  {
+    "id": "metzinger-being-no-one-book",
+    "title": "Being No One: The Self-Model Theory of Subjectivity",
+    "source_type": "book",
+    "url": "https://mitpress.mit.edu/9780262633086/being-no-one/",
+    "themes": [
+      "self-model",
+      "self-cognition",
+      "phenomenal-selfhood",
+      "philosophy-of-mind"
+    ],
+    "priority": "foundation",
+    "notes": "Book-length self-model theory: there is no thing that is the self, only a transparent self-model the system builds. The license for yizhi to build (and maintain) an explicit self-model module. Precis PDF: https://journalpsyche.org/files/0xaad5.pdf"
+  },
+  {
+    "id": "ricoeur-oneself-as-another-book",
+    "title": "Oneself as Another",
+    "source_type": "book",
+    "url": "https://press.uchicago.edu/ucp/books/book/chicago/O/bo3624357.html",
+    "themes": [
+      "narrative-identity",
+      "self-cognition",
+      "philosophy-of-mind",
+      "selfhood"
+    ],
+    "notes": "Narrative identity in philosophy: selfhood is constituted through the story one tells binding past and future. Companion to McAdams & McLean 2013 for the self-cognition module.",
+    "priority": "foundation"
+  },
+  {
+    "id": "frankl-mans-search-for-meaning-book",
+    "title": "Man's Search for Meaning",
+    "source_type": "book",
+    "url": "https://www.beacon.org/Mans-Search-for-Meaning-P331.aspx",
+    "themes": [
+      "meaning",
+      "will-to-meaning",
+      "vision",
+      "telos"
+    ],
+    "priority": "foundation",
+    "notes": "The will-to-meaning: purpose is what survives when drives and goals are stripped away. The existential grounding for the vision module — why an agent needs a telos that outlasts any single goal."
+  },
+  {
+    "id": "fauconnier-turner-the-way-we-think-book",
+    "title": "The Way We Think: Conceptual Blending and the Mind's Hidden Complexities",
+    "source_type": "book",
+    "url": "https://www.basicbooks.com/titles/gilles-fauconnier/the-way-we-think/9780465087860/",
+    "themes": [
+      "conceptual-blending",
+      "association",
+      "creativity",
+      "cognitive-science"
+    ],
+    "priority": "foundation",
+    "notes": "Book-length treatment of conceptual blending — combining mental spaces to produce emergent structure. The full account behind Fauconnier & Turner 1998 for the association module's recombination step."
   }
 ]

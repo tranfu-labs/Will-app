@@ -1,5 +1,23 @@
 [
   {
+    "id": "frankfurt-1971-freedom-of-the-will-and-person",
+    "title": "Freedom of the Will and the Concept of a Person",
+    "year": 1971,
+    "authors": "Harry G. Frankfurt",
+    "themes": [
+      "free-will",
+      "second-order-desire",
+      "volition",
+      "personhood",
+      "philosophy-of-will",
+      "will-theory"
+    ],
+    "source_url": "https://www.jstor.org/stable/2024717",
+    "pdf_url": "https://www.phil.uu.nl/~joel/3027/Frankfurt-FreedomWillConceptPerson.pdf",
+    "priority": "will-theory",
+    "notes": "Second-order desires/volitions as the mark of will: a system can have first-order impulses (continuous token output) yet lack the reflective endorsement of which impulse should move it. Precise philosophical grounding for 'continuous output is not will'."
+  },
+  {
     "id": "bratman-1988-resource-bounded-practical-reasoning",
     "title": "Plans and Resource-Bounded Practical Reasoning",
     "year": 1988,
@@ -50,6 +68,25 @@
     "notes": "Canonical agent-theory survey for autonomy, social ability, reactivity, and proactiveness."
   },
   {
+    "id": "dipaolo-2005-autopoiesis-adaptivity-teleology-agency",
+    "title": "Autopoiesis, Adaptivity, Teleology, Agency",
+    "year": 2005,
+    "authors": "Ezequiel A. Di Paolo",
+    "themes": [
+      "autopoiesis",
+      "adaptivity",
+      "teleology",
+      "agency",
+      "sense-making",
+      "enactivism",
+      "will-theory"
+    ],
+    "source_url": "https://link.springer.com/article/10.1007/s11097-005-9002-y",
+    "pdf_url": "https://yannickprie.net/archives/ENACTION-SCHOOLS/docs/documents2006/autopoiesis_teleology_2005.pdf",
+    "priority": "will-theory",
+    "notes": "Key bridge from self-maintenance to genuine concern. Autopoiesis alone gives intrinsic teleology, but adaptivity (regulating oneself relative to viability conditions) is what produces sense-making and grounded value. Core source for yizhi's stake/self-maintenance axiom."
+  },
+  {
     "id": "omohundro-2008-basic-ai-drives",
     "title": "The Basic AI Drives",
     "year": 2008,
@@ -64,6 +101,43 @@
     "pdf_url": "https://selfawaresystems.com/wp-content/uploads/2008/01/ai_drives_final.pdf",
     "priority": "safety",
     "notes": "Required safety reference once yizhi discusses self-maintenance, resources, and reproduction."
+  },
+  {
+    "id": "barandiaran-2009-defining-agency",
+    "title": "Defining Agency: Individuality, Normativity, Asymmetry, and Spatio-temporality in Action",
+    "year": 2009,
+    "authors": "Xabier E. Barandiaran, Ezequiel A. Di Paolo, and Marieke Rohde",
+    "themes": [
+      "agency",
+      "individuality",
+      "normativity",
+      "interactional-asymmetry",
+      "autonomy",
+      "enactivism",
+      "will-theory"
+    ],
+    "source_url": "https://journals.sagepub.com/doi/abs/10.1177/1059712309343819",
+    "pdf_url": "https://xabier.barandiaran.net/wp-content/uploads/2022/12/barandiaran_dipaolo_rohde_-_2009_-_defining_agency_-_adbeh_pub.pdf",
+    "priority": "will-theory",
+    "notes": "Three necessary conditions for genuine agency: individuality (the system defines its own boundary), interactional asymmetry (it is the active source of its activity, not just reactive), and normativity (it regulates activity against its own viability norms). A testable checklist separating real agency from reactive tool use."
+  },
+  {
+    "id": "friston-2010-free-energy-principle",
+    "title": "The Free-Energy Principle: A Unified Brain Theory?",
+    "year": 2010,
+    "authors": "Karl J. Friston",
+    "themes": [
+      "free-energy-principle",
+      "active-inference",
+      "homeostasis",
+      "self-evidencing",
+      "agency",
+      "will-theory"
+    ],
+    "source_url": "https://www.nature.com/articles/nrn2787",
+    "pdf_url": "https://www.fil.ion.ucl.ac.uk/~karl/NRN.pdf",
+    "priority": "will-theory",
+    "notes": "Foundational statement of the free-energy principle: agents resist disorder by minimizing surprise relative to a generative model of their own preferred states. Formal backbone under drive, active inference, and the self-maintenance axiom."
   },
   {
     "id": "bostrom-2012-superintelligent-will",
@@ -644,5 +718,500 @@
     "pdf_url": "https://arxiv.org/pdf/2602.22680",
     "priority": "core",
     "notes": "Modern survey for personal agents: profile modeling, memory, planning, and action execution."
+  },
+  {
+    "id": "anderson-1991-reflections-environment-memory",
+    "title": "Reflections of the Environment in Memory",
+    "year": 1991,
+    "authors": "John R. Anderson and Lael J. Schooler",
+    "themes": [
+      "memory",
+      "rational-analysis",
+      "forgetting",
+      "recency",
+      "salience",
+      "will-theory"
+    ],
+    "source_url": "https://journals.sagepub.com/doi/10.1111/j.1467-9280.1991.tb00174.x",
+    "pdf_url": "https://users.cs.northwestern.edu/~paritosh/papers/KIP/AndersonSchooler1991ReflectionsOfEnvironmentOnMemory.pdf",
+    "priority": "will-theory",
+    "notes": "Rational analysis of memory: a memory's availability tracks the probability it will be needed, estimated from frequency, recency, and spacing of past use. The foundational argument that human forgetting is adaptive, not a defect — directly grounds salience-weighted retention and decay for yizhi."
+  },
+  {
+    "id": "squire-2004-memory-systems-of-the-brain",
+    "title": "Memory Systems of the Brain: A Brief History and Current Perspective",
+    "year": 2004,
+    "authors": "Larry R. Squire",
+    "themes": [
+      "memory",
+      "taxonomy",
+      "declarative",
+      "procedural",
+      "neuroscience"
+    ],
+    "source_url": "https://pubmed.ncbi.nlm.nih.gov/15464402/",
+    "pdf_url": "http://whoville.ucsd.edu/PDFs/384_Squire_%20NeurobiolLearnMem2004.pdf",
+    "priority": "core",
+    "notes": "Canonical declarative/nondeclarative taxonomy of long-term memory (episodic, semantic, procedural, priming, conditioning). The reference map for why yizhi needs typed memory, not one undifferentiated store."
+  },
+  {
+    "id": "mcgaugh-2013-making-lasting-memories-significant",
+    "title": "Making Lasting Memories: Remembering the Significant",
+    "year": 2013,
+    "authors": "James L. McGaugh",
+    "themes": [
+      "memory",
+      "emotional-arousal",
+      "salience",
+      "consolidation",
+      "amygdala",
+      "will-theory"
+    ],
+    "source_url": "https://pmc.ncbi.nlm.nih.gov/articles/PMC3690616/",
+    "pdf_url": "https://europepmc.org/articles/PMC3690616?pdf=render",
+    "priority": "core",
+    "notes": "Emotional arousal selectively enhances consolidation via amygdala and stress-hormone modulation, creating lasting memories of significant experiences while most fade. Neuroscience basis for salience-at-encoding: importance is stamped when the memory forms, not only at retrieval."
+  },
+  {
+    "id": "kumaran-2016-complementary-learning-systems-updated",
+    "title": "What Learning Systems Do Intelligent Agents Need? Complementary Learning Systems Theory Updated",
+    "year": 2016,
+    "authors": "Dharshan Kumaran, Demis Hassabis, and James L. McClelland",
+    "themes": [
+      "memory",
+      "complementary-learning-systems",
+      "consolidation",
+      "replay",
+      "hippocampus-neocortex",
+      "will-theory"
+    ],
+    "source_url": "https://www.cell.com/trends/cognitive-sciences/abstract/S1364-6613(16)30043-2",
+    "pdf_url": "https://ni.cmu.edu/~tai/nc19journalclubs/KumaranHassabisMcC16CLSUpdate.pdf",
+    "priority": "core",
+    "notes": "CLS theory for intelligent agents: a fast hippocampal store for specific episodes plus a slow neocortical system that interleaves them into structured semantic knowledge, with replay weighted by reward and novelty. Blueprint for yizhi's episodic-to-semantic consolidation and prioritized replay."
+  },
+  {
+    "id": "richards-2017-persistence-and-transience-of-memory",
+    "title": "The Persistence and Transience of Memory",
+    "year": 2017,
+    "authors": "Blake A. Richards and Paul W. Frankland",
+    "themes": [
+      "memory",
+      "forgetting",
+      "transience",
+      "generalization",
+      "decision-making",
+      "will-theory"
+    ],
+    "source_url": "https://www.cell.com/neuron/fulltext/S0896-6273(17)30365-3",
+    "pdf_url": "https://sherpapg.com/wp-content/uploads/2017/12/Persistance-and-Transience-of-Memory-STUDY.pdf",
+    "priority": "will-theory",
+    "notes": "Argues the goal of memory is to optimize decision-making, not to transmit information faithfully; transience (forgetting) enhances flexibility in changing environments and prevents overfitting in noisy ones. The strongest statement that forgetting must be engineered, not avoided."
+  },
+  {
+    "id": "hipporag-2024-neurobiologically-inspired-memory",
+    "title": "HippoRAG: Neurobiologically Inspired Long-Term Memory for Large Language Models",
+    "year": 2024,
+    "authors": "Bernal Jimenez Gutierrez et al.",
+    "themes": [
+      "memory",
+      "retrieval",
+      "knowledge-graph",
+      "hippocampal-indexing",
+      "llm-agent"
+    ],
+    "source_url": "https://arxiv.org/abs/2405.14831",
+    "pdf_url": "https://arxiv.org/pdf/2405.14831",
+    "priority": "foundation",
+    "notes": "Hippocampal-indexing-inspired retrieval: a knowledge graph plus Personalized PageRank as a neocortex/hippocampus index. A useful retrieval signal, but it is indexing, not a full memory lifecycle (no decay, salience, or consolidation)."
+  },
+  {
+    "id": "zep-2025-temporal-knowledge-graph-memory",
+    "title": "Zep: A Temporal Knowledge Graph Architecture for Agent Memory",
+    "year": 2025,
+    "authors": "Preston Rasmussen et al.",
+    "themes": [
+      "memory",
+      "temporal-knowledge-graph",
+      "agent-memory",
+      "fact-validity",
+      "retrieval"
+    ],
+    "source_url": "https://arxiv.org/abs/2501.13956",
+    "pdf_url": "https://arxiv.org/pdf/2501.13956",
+    "priority": "core",
+    "notes": "Temporal knowledge graph for agent memory: facts carry validity windows (when true, when superseded), enabling 'X was true until Y'. Clean pattern for yizhi's temporal and identity memory and for contradiction handling."
+  },
+  {
+    "id": "amem-2025-agentic-memory",
+    "title": "A-MEM: Agentic Memory for LLM Agents",
+    "year": 2025,
+    "authors": "Wujiang Xu et al.",
+    "themes": [
+      "memory",
+      "agentic-memory",
+      "zettelkasten",
+      "self-organizing",
+      "llm-agent"
+    ],
+    "source_url": "https://arxiv.org/abs/2502.12110",
+    "pdf_url": "https://arxiv.org/pdf/2502.12110",
+    "priority": "foundation",
+    "notes": "Zettelkasten-style agentic memory: each new note auto-generates keywords and tags and links retrospectively to prior notes, updating their attributes. A pattern for self-organizing interlinked memory; still lacks decay and salience."
+  },
+  {
+    "id": "memoryos-2025-memory-os-of-ai-agent",
+    "title": "Memory OS of AI Agent",
+    "year": 2025,
+    "authors": "Jiazheng Kang et al.",
+    "themes": [
+      "memory",
+      "operating-system",
+      "hierarchical-memory",
+      "tier-promotion",
+      "llm-agent"
+    ],
+    "source_url": "https://arxiv.org/abs/2506.06326",
+    "pdf_url": "https://arxiv.org/pdf/2506.06326",
+    "priority": "foundation",
+    "notes": "OS-inspired hierarchical memory (short/mid/long-term) with FIFO and segmented-page promotion between tiers. Formalizes tier transitions; complements the Letta/MemGPT core-memory idea."
+  },
+  {
+    "id": "hindsight-2025-agent-memory-retain-recall-reflect",
+    "title": "Hindsight is 20/20: Building Agent Memory that Retains, Recalls, and Reflects",
+    "year": 2025,
+    "authors": "Hindsight authors",
+    "themes": [
+      "memory",
+      "reflection",
+      "belief-update",
+      "agent-memory",
+      "watch"
+    ],
+    "source_url": "https://arxiv.org/abs/2512.12818",
+    "pdf_url": "https://arxiv.org/pdf/2512.12818",
+    "priority": "watch",
+    "notes": "Separates memory into world facts, agent experiences, entity summaries, and evolving beliefs, with an explicit Reflect-Update-Retrieve cycle. Useful four-network decomposition and first-class reflection; still no explicit decay or salience. Verify details."
+  },
+  {
+    "id": "blanke-metzinger-2009-full-body-illusions-minimal-selfhood",
+    "title": "Full-body illusions and minimal phenomenal selfhood",
+    "year": 2009,
+    "authors": "Olaf Blanke, Thomas Metzinger",
+    "themes": [
+      "self-model",
+      "minimal-self",
+      "bodily-self",
+      "phenomenal-selfhood",
+      "self-cognition"
+    ],
+    "source_url": "https://doi.org/10.1016/j.tics.2008.10.003",
+    "pdf_url": "https://www.epfl.ch/labs/lnco/wp-content/uploads/2018/08/2009_Blanke_TICS_full-body-illusions-and-minimal-phenomenal-selfhood.pdf",
+    "priority": "foundation",
+    "notes": "Self-model theory: the self is a model the brain builds and can be experimentally disrupted. Grounds the self-cognition module's authenticity test: yizhi's 'self' must be a built, maintainable model, not a declared config string. The mirror-stranger experience = the self-model briefly turning opaque."
+  },
+  {
+    "id": "gallagher-2000-philosophical-conceptions-of-the-self",
+    "title": "Philosophical conceptions of the self: implications for cognitive science",
+    "year": 2000,
+    "authors": "Shaun Gallagher",
+    "themes": [
+      "minimal-self",
+      "narrative-self",
+      "self-cognition",
+      "philosophy-of-mind"
+    ],
+    "source_url": "https://doi.org/10.1016/S1364-6613(99)01417-5",
+    "pdf_url": "",
+    "priority": "core",
+    "notes": "Distinguishes the minimal self (immediate, embodied) from the narrative self (extended in time, constituted by memory and story). Core grounding for 'self = binding past-memory into a narrative I'; the mirror crisis is a momentary decoupling of the two. No open PDF found; landing page only."
+  },
+  {
+    "id": "sierra-berrios-1998-depersonalization-neurobiological-perspectives",
+    "title": "Depersonalization: neurobiological perspectives",
+    "year": 1998,
+    "authors": "Mauricio Sierra, German E. Berrios",
+    "themes": [
+      "depersonalization",
+      "self-cognition",
+      "self-continuity",
+      "clinical-neuroscience"
+    ],
+    "source_url": "https://pubmed.ncbi.nlm.nih.gov/9807645/",
+    "pdf_url": "",
+    "priority": "foundation",
+    "notes": "Neurobiology of depersonalization — the clinical form of looking in the mirror and not knowing who that is. Grounds the failure mode the self-model module must detect and repair: loss of self-coherence is a first-class signal, not an error to hide. Paywalled; landing page only."
+  },
+  {
+    "id": "northoff-2006-self-referential-processing-meta-analysis",
+    "title": "Self-referential processing in our brain—A meta-analysis of imaging studies on the self",
+    "year": 2006,
+    "authors": "Georg Northoff, Alexander Heinzel, Moritz de Greck, Felix Bermpohl, Henrik Dobrowolny, Jaak Panksepp",
+    "themes": [
+      "self-referential-processing",
+      "default-mode-network",
+      "self-cognition",
+      "neuroimaging"
+    ],
+    "source_url": "https://doi.org/10.1016/j.neuroimage.2005.12.002",
+    "pdf_url": "https://web.mit.edu/hst.583/www/Lab1_Gabrieli/Northoff_Neuroimage2006.pdf",
+    "priority": "foundation",
+    "notes": "Localizes self-referential processing to cortical-midline / default-network structures. The empirical bridge between the self-cognition and continuous-thought modules: the same machinery that wanders maintains the self (so they are one default-mode loop, not two)."
+  },
+  {
+    "id": "seth-2013-interoceptive-inference-embodied-self",
+    "title": "Interoceptive inference, emotion, and the embodied self",
+    "year": 2013,
+    "authors": "Anil K. Seth",
+    "themes": [
+      "predictive-self",
+      "interoceptive-inference",
+      "active-inference",
+      "self-cognition"
+    ],
+    "source_url": "https://doi.org/10.1016/j.tics.2013.09.007",
+    "pdf_url": "https://www.fil.ion.ucl.ac.uk/~karl/Interoceptive%20inference%20emotion%20and%20the%20embodied%20self..pdf",
+    "priority": "foundation",
+    "notes": "The embodied self as interoceptive inference (active-inference lineage, cf. Friston 2010 already in the base). Grounds the self-model as a predictive model of the agent's own state — testable by prediction error on its own behavior, the authenticity criterion for self-cognition."
+  },
+  {
+    "id": "mcadams-mclean-2013-narrative-identity",
+    "title": "Narrative Identity",
+    "year": 2013,
+    "authors": "Dan P. McAdams, Kate C. McLean",
+    "themes": [
+      "narrative-identity",
+      "self-cognition",
+      "vision",
+      "life-story"
+    ],
+    "source_url": "https://doi.org/10.1177/0963721413475622",
+    "pdf_url": "",
+    "priority": "foundation",
+    "notes": "Narrative identity: the self as an internalized, evolving life story binding past and imagined future. Directly grounds 'self = memory(past) ⊗ vision(future), narrative is the binding' — the structural link between the self-cognition and vision modules. Open PDF fragile; landing page only."
+  },
+  {
+    "id": "raichle-2001-default-mode-of-brain-function",
+    "title": "A default mode of brain function",
+    "year": 2001,
+    "authors": "Marcus E. Raichle, Ann Mary MacLeod, Abraham Z. Snyder, William J. Powers, Debra A. Gusnard, Gordon L. Shulman",
+    "themes": [
+      "default-mode-network",
+      "intrinsic-activity",
+      "continuous-thought",
+      "neuroimaging"
+    ],
+    "source_url": "https://pmc.ncbi.nlm.nih.gov/articles/PMC14647/",
+    "pdf_url": "https://europepmc.org/api/getPdf?pmcid=PMC14647",
+    "priority": "core",
+    "notes": "Founding evidence for the default mode network — the brain is intrinsically, continuously active when not doing an external task. Core grounding for the continuous-thought module: a will agent needs an always-on internal loop, not only stimulus->response."
+  },
+  {
+    "id": "christoff-2016-mind-wandering-spontaneous-thought",
+    "title": "Mind-wandering as spontaneous thought: a dynamic framework",
+    "year": 2016,
+    "authors": "Kalina Christoff, Zachary C. Irving, Kieran C. R. Fox, R. Nathan Spreng, Jessica R. Andrews-Hanna",
+    "themes": [
+      "spontaneous-thought",
+      "mind-wandering",
+      "default-mode-network",
+      "continuous-thought"
+    ],
+    "source_url": "https://www.nature.com/articles/nrn.2016.113",
+    "pdf_url": "",
+    "priority": "foundation",
+    "notes": "A dynamic framework for spontaneous thought as variably-constrained, self-generated cognition. Grounds the default-mode loop AND the need for a governor: unconstrained spontaneous thought is rumination, so will = the governance of the stream (what to attend, pursue, drop). Paywalled; landing page only."
+  },
+  {
+    "id": "smallwood-schooler-2015-science-of-mind-wandering",
+    "title": "The science of mind wandering: empirically navigating the stream of consciousness",
+    "year": 2015,
+    "authors": "Jonathan Smallwood, Jonathan W. Schooler",
+    "themes": [
+      "mind-wandering",
+      "continuous-thought",
+      "attention",
+      "stream-of-consciousness"
+    ],
+    "source_url": "https://www.annualreviews.org/doi/10.1146/annurev-psych-010814-015331",
+    "pdf_url": "https://www.tcd.ie/media/tcd/psychology/pdf/evening-course/25-26/Smallwood-and-Schooler-2015.pdf",
+    "priority": "foundation",
+    "notes": "Review of mind-wandering: its costs and its adaptive functions (planning, creativity). Grounds why a continuous internal stream is useful and why it needs an attentional/budget gate to avoid pure drift — the convergent half of the continuous-thought module."
+  },
+  {
+    "id": "andrews-hanna-2012-default-network-internal-mentation",
+    "title": "The brain's default network and its adaptive role in internal mentation",
+    "year": 2012,
+    "authors": "Jessica R. Andrews-Hanna",
+    "themes": [
+      "default-mode-network",
+      "internal-mentation",
+      "future-simulation",
+      "continuous-thought"
+    ],
+    "source_url": "https://pmc.ncbi.nlm.nih.gov/articles/PMC3553600/",
+    "pdf_url": "",
+    "priority": "foundation",
+    "notes": "The default network's adaptive role in internal mentation: remembering, simulating the future, self-reflection. Grounds the *content* of yizhi's continuous loop as memory replay + future simulation + self-reference — the same triad as the self-cognition module. PMC landing (free full text in-browser); no verified direct PDF."
+  },
+  {
+    "id": "collins-loftus-1975-spreading-activation",
+    "title": "A spreading-activation theory of semantic processing",
+    "year": 1975,
+    "authors": "Allan M. Collins, Elizabeth F. Loftus",
+    "themes": [
+      "spreading-activation",
+      "semantic-memory",
+      "association",
+      "retrieval"
+    ],
+    "source_url": "https://psycnet.apa.org/doi/10.1037/0033-295X.82.6.407",
+    "pdf_url": "https://bpb-us-e2.wpmucdn.com/faculty.sites.uci.edu/dist/c/571/files/2024/08/CollinsLoftus_PsychReview_75.pdf",
+    "priority": "core",
+    "notes": "Spreading-activation theory of semantic memory — activation flows from a concept to related concepts. The classic mechanism for the association module: divergent, non-query recall that spreads from an active memory to distant related ones (vs the current query-driven recall)."
+  },
+  {
+    "id": "mednick-1962-associative-basis-creative-process",
+    "title": "The associative basis of the creative process",
+    "year": 1962,
+    "authors": "Sarnoff A. Mednick",
+    "themes": [
+      "association",
+      "creativity",
+      "remote-associates",
+      "divergent-thinking"
+    ],
+    "source_url": "https://psycnet.apa.org/doi/10.1037/h0048850",
+    "pdf_url": "https://pdfs.semanticscholar.org/927c/10385d93d538e2791f8ef28c5eaf96e08a73.pdf",
+    "priority": "foundation",
+    "notes": "Creativity as forming associations among remote elements. Grounds the association module's value claim and its two-phase design: divergent generation must be paired with convergent selection — remote is not random, the noise is filtered by an evaluator (the will)."
+  },
+  {
+    "id": "schacter-addis-2007-constructive-memory",
+    "title": "The cognitive neuroscience of constructive memory: remembering the past and imagining the future",
+    "year": 2007,
+    "authors": "Daniel L. Schacter, Donna Rose Addis",
+    "themes": [
+      "constructive-memory",
+      "imagination",
+      "future-simulation",
+      "association"
+    ],
+    "source_url": "https://pmc.ncbi.nlm.nih.gov/articles/PMC2429996/",
+    "pdf_url": "https://europepmc.org/api/getPdf?pmcid=PMC2429996",
+    "priority": "foundation",
+    "notes": "Constructive episodic simulation: the same system remembers the past and imagines the future; memory is recombined, not replayed. Grounds association-as-recombination over the memory economy, and links it to vision (future simulation) — memory is the raw material of new ideas."
+  },
+  {
+    "id": "fauconnier-turner-1998-conceptual-integration-networks",
+    "title": "Conceptual Integration Networks",
+    "year": 1998,
+    "authors": "Gilles Fauconnier, Mark Turner",
+    "themes": [
+      "conceptual-blending",
+      "conceptual-integration",
+      "association",
+      "creativity"
+    ],
+    "source_url": "https://onlinelibrary.wiley.com/doi/10.1207/s15516709cog2202_1",
+    "pdf_url": "",
+    "priority": "foundation",
+    "notes": "Conceptual integration (blending): combining mental spaces yields emergent structure not present in either input. Grounds the 'fuse two distant memory clusters -> a new idea' step (the high-school ⊗ grad-school example) at the core of the association module. No OA PDF of the 1998 article; landing page only."
+  },
+  {
+    "id": "beaty-2016-creative-cognition-brain-network-dynamics",
+    "title": "Creative Cognition and Brain Network Dynamics",
+    "year": 2016,
+    "authors": "Roger E. Beaty, Mathias Benedek, Paul J. Silvia, Daniel L. Schacter",
+    "themes": [
+      "creativity",
+      "default-mode-network",
+      "executive-control",
+      "association"
+    ],
+    "source_url": "https://pmc.ncbi.nlm.nih.gov/articles/PMC4724474/",
+    "pdf_url": "",
+    "priority": "foundation",
+    "notes": "Creative cognition as the dynamic interplay of the default (generative) and executive (evaluative) networks. Empirical grounding for the divergent+convergent architecture the association module needs: association generates, will evaluates. PMC landing; no verified direct PDF."
+  },
+  {
+    "id": "markus-nurius-1986-possible-selves",
+    "title": "Possible Selves",
+    "year": 1986,
+    "authors": "Hazel Markus, Paula Nurius",
+    "themes": [
+      "possible-selves",
+      "vision",
+      "future-self",
+      "motivation"
+    ],
+    "source_url": "https://doi.org/10.1037/0003-066X.41.9.954",
+    "pdf_url": "https://cursa.ihmc.us/rid=1LQJK1Z9J-16LFNTG-39MK/Possible%20Selves%20ARTICLE.pdf",
+    "priority": "core",
+    "notes": "Possible selves: the self's representations of what it could become; the hoped-for self motivates present action. Grounds vision as a *future self-model* — fusing the vision and self-cognition modules into one identity that spans past and future."
+  },
+  {
+    "id": "deci-ryan-2000-what-and-why-of-goal-pursuits",
+    "title": "The \"What\" and \"Why\" of Goal Pursuits: Human Needs and the Self-Determination of Behavior",
+    "year": 2000,
+    "authors": "Edward L. Deci, Richard M. Ryan",
+    "themes": [
+      "self-determination",
+      "intrinsic-motivation",
+      "autonomy",
+      "vision"
+    ],
+    "source_url": "https://doi.org/10.1207/S15327965PLI1104_01",
+    "pdf_url": "https://selfdeterminationtheory.org/SDT/documents/2000_DeciRyan_PIWhatWhy.pdf",
+    "priority": "core",
+    "notes": "Self-determination theory: autonomy and integrated, self-endorsed values vs external control. Grounds the vision authenticity test — a vision must be self-endorsed (intrinsic), not an instruction handed in (extrinsic). Listed in references.md 'What To Add Next'."
+  },
+  {
+    "id": "carver-scheier-1982-control-theory-framework",
+    "title": "Control theory: A useful conceptual framework for personality-social, clinical, and health psychology",
+    "year": 1982,
+    "authors": "Charles S. Carver, Michael F. Scheier",
+    "themes": [
+      "control-theory",
+      "goal-hierarchy",
+      "self-regulation",
+      "vision"
+    ],
+    "source_url": "https://doi.org/10.1037/0033-2909.92.1.111",
+    "pdf_url": "https://erlanbakiev.weebly.com/uploads/1/0/8/3/10833829/controltheory.pdf",
+    "priority": "core",
+    "notes": "Behavior as a hierarchy of feedback loops with reference values. Gives vision a formal structure: the vision is the top-level reference (a 'be-goal') never fully matched, from which concrete goals descend and to which actions ultimately answer."
+  },
+  {
+    "id": "powers-1973-feedback-beyond-behaviorism",
+    "title": "Feedback: Beyond Behaviorism",
+    "year": 1973,
+    "authors": "William T. Powers",
+    "themes": [
+      "control-theory",
+      "perceptual-control",
+      "goal-hierarchy",
+      "cybernetics"
+    ],
+    "source_url": "https://doi.org/10.1126/science.179.4071.351",
+    "pdf_url": "https://www.tedcloak.com/uploads/4/5/3/7/45374411/powers_-_beyond_behaviorism_1973.pdf",
+    "priority": "foundation",
+    "notes": "Perceptual Control Theory in brief: behavior exists to control perception toward hierarchical reference signals. The cybernetic root of the goal hierarchy — 'vision = top of the control hierarchy, goals serve it, actions serve goals'."
+  },
+  {
+    "id": "heintzelman-king-2014-life-is-pretty-meaningful",
+    "title": "Life Is Pretty Meaningful",
+    "year": 2014,
+    "authors": "Samantha J. Heintzelman, Laura A. King",
+    "themes": [
+      "meaning",
+      "purpose",
+      "coherence",
+      "vision"
+    ],
+    "source_url": "https://doi.org/10.1037/a0035049",
+    "pdf_url": "https://samanthaheintzelman.com/wp-content/uploads/2018/11/hk-ap.pdf",
+    "priority": "foundation",
+    "notes": "Evidence that meaning in life is common and built from coherence, purpose, and significance. Grounds why a vision matters functionally: it supplies the coherence that makes an agent's actions a story rather than a random walk (the operational form of Frankl's will-to-meaning)."
   }
 ]
