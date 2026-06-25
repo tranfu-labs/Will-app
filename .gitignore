@@ -1,4 +1,5 @@
 # Local generated research cache
+.yizhi/
 data/papers/pdfs/
 data/papers/papers.sqlite
 data/papers/*.sqlite
@@ -13,9 +14,9 @@ __pycache__/
 .env
 .env.*
 !.env.example
+yizhi.config.toml
 
 # OS/editor noise
 .DS_Store
 .idea/
 .vscode/
-

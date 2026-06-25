@@ -1,0 +1,37 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "yizhi"
+version = "0.1.0"
+description = "Local governed Will Agent v0"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+  "pydantic>=2",
+]
+
+[project.optional-dependencies]
+dev = [
+  "pytest>=8",
+]
+memory = [
+  "mem0ai>=0.1.0",
+]
+llm = [
+  "openai>=1.0",
+]
+litellm = [
+  "litellm>=1.0",
+]
+embedding = [
+  "fastembed>=0.3",
+]
+
+[project.scripts]
+yizhi = "yizhi.cli:main"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]
