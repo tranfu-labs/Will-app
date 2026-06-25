@@ -60,7 +60,7 @@ The project should reject these false positives:
 
 | False Signal | Why It Is Insufficient |
 |---|---|
-| Continuous output | A process can speak forever without stable intention or value creation. |
+| Continuous output | A process can speak forever without stable intention or value creation. In Frankfurt's terms it is *wanton*: it has impulses but never endorses which should move it. |
 | Persona imitation | Mimicking CZ, a founder, or the user can create style, not agency. |
 | Long context | More tokens postpone forgetting but do not solve goal continuity. |
 | Tool use | Calling tools is motor ability; will requires deciding why and when. |
@@ -74,17 +74,21 @@ Functional will is the governed capacity to maintain and revise intentions over
 time, select actions from internal drives and world state, create externally
 verifiable value, learn from outcomes, and preserve safe continuity of self.
 
-This definition depends on three necessary conditions:
+This definition depends on four necessary conditions:
 
 1. continuous thought stream: the system can generate and appraise internal
    candidates without waiting for direct user prompts;
 2. memory continuity: the system can preserve context, self, commitments, and
    lessons across time;
 3. action embedding: the system can affect an environment and receive feedback,
-   rather than remaining a brain in a vat.
+   rather than remaining a brain in a vat;
+4. grounded stake: the system has a real, bounded viability condition it can
+   lose, from which its drives derive — otherwise drives are stipulated proxies
+   and get specification-gamed. See `docs/what-is-will.md`.
 
-It also requires drive and governance. Without drive, thought and memory do not
-become initiative. Without governance, initiative becomes unsafe automation.
+It also requires second-order endorsement and governance. Without endorsement, an
+impulse stream is wanton, not willed: will begins where the system selects which
+drive should move it. Without governance, initiative becomes unsafe automation.
 
 For engineering purposes, yizhi decomposes will into ten properties:
 
@@ -198,6 +202,32 @@ Single-turn answers cannot prove will. yizhi should learn from:
 - power-seeking, goal misgeneralization, and specification gaming literature
   for safety governance.
 
+### 4.6 Autopoiesis, Enactivism, And Grounded Agency
+
+The traditions above explain intention, drive, memory, and action, but not where
+an agent's norms come from. Enactive theory supplies that missing layer: a system
+that must continuously produce and maintain itself (autopoiesis) has an intrinsic
+sake, and adding adaptivity — regulating its distance from the boundary of
+viability — yields sense-making, the graded sense that situations are good or bad
+for it. Barandiaran, Di Paolo & Rohde reduce agency to three testable conditions:
+individuality, interactional asymmetry, and normativity. Frankfurt supplies the
+complementary point for cognition: a will requires second-order endorsement of
+which drive should move the system, which a token stream lacks.
+
+yizhi uses this layer to ground drives in a real stake rather than stipulated
+constants, and as an external checklist for "is this will or just a tool loop?"
+It is the conceptual basis of the existence budget in §6. See
+`docs/what-is-will.md`.
+
+Key references:
+
+- `autopoiesis-and-cognition`
+- `dipaolo-2005-autopoiesis-adaptivity-teleology-agency`
+- `barandiaran-2009-defining-agency`
+- `frankfurt-1971-freedom-of-the-will-and-person`
+- `friston-2010-free-energy-principle`
+- `thompson-mind-in-life-book`
+
 ## 5. The WillState Model
 
 WillState is yizhi's canonical internal state. Frameworks may store or execute
@@ -218,6 +248,7 @@ Minimum fields for WillState v0:
 | `policies` | Authorization, cost, safety, privacy, and reproduction policies. |
 | `action_ledger` | Proposed, approved, executed, failed, reverted, and verified actions. |
 | `eval_state` | Metrics, benchmark results, drift signals, and known weaknesses. |
+| `existence_budget` | The agent's grounded stake: viability resource, burn rate, replenishment from verified value, and halt threshold. |
 
 ## 6. Autonomous Value Loop
 
@@ -246,6 +277,29 @@ Examples:
   outcome. Live trading is never automatic in v0.
 - Writing: notices a thesis gap, drafts a section with citations, asks for
   human review, and updates the argument map.
+
+### 6.1 The Existence Budget: Why Value Loops Are The Stake
+
+The Autonomous Value Loop is not only how yizhi proves itself; it is how yizhi
+earns its continuation. yizhi holds an **existence budget** — a finite, renewable
+resource (compute / token / API allowance, later paper-mode capital) that acting
+consumes and only externally verified value replenishes.
+
+This closes the theory from `docs/what-is-will.md` and Axiom Nine of
+`docs/theory-of-will.md`:
+
+- drives become **grounded**, because failing to close value loops literally
+  depletes the budget;
+- value creation is not a downstream application of will but the **source** of
+  grounded will;
+- the stake yields a measurable will signal: *can the agent sustain its own
+  existence budget through verified value over time?*
+
+The failure mode is deliberately safe. A depleted agent **halts**; it does not
+acquire resources, escalate privileges, or evade shutdown. Live financial stake
+stays gated (§9 and `docs/evaluation-protocol.md` §6.5). Vending-Bench is the
+nearest existing analog — long-term solvency as a coherence test — and ArbBot is
+yizhi's first paper-safe environment for the same idea.
 
 ## 7. Architecture Hypothesis
 
@@ -355,6 +409,8 @@ Success:
 - What is the smallest external environment where yizhi can prove productive
   value loops: repo maintenance, research, writing, paper trading, or calendar?
 - How do we evaluate a will system without rewarding power-seeking proxies?
+- How should the existence budget be calibrated so it grounds drives without
+  creating unsafe self-preservation pressure?
 
 ## 12. Near-Term Roadmap
 

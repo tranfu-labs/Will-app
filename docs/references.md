@@ -37,8 +37,14 @@ papers.
 
 | Layer | Main Question | Primary Local Index |
 |---|---|---|
-| Philosophy of intention | What is will/intention as commitment? | `data/papers`, `data/sources` |
+| Philosophy of will and intention | What is will, and what is intention as commitment? | `data/papers`, `data/sources` |
 | Homeostasis and active inference | How can internal drives choose action? | `data/papers` |
+| Autopoiesis and grounded agency | Where do an agent's drives and norms come from? | `data/papers`, `data/sources` |
+| Memory systems | How should an agent encode, consolidate, forget, and retrieve? | `data/papers`, `data/sources` |
+| Self-cognition | How does an agent maintain a coherent self-model over time? | `data/papers`, `data/sources` |
+| Continuous thought | How does a mind think when no task is given (default mode)? | `data/papers` |
+| Association and creativity | How do distant memories recombine into new ideas? | `data/papers`, `data/sources` |
+| Vision, meaning, and goal hierarchy | Why does an agent have a telos that generates goals? | `data/papers`, `data/sources` |
 | LLM agent architecture | How do memory, planning, reflection, and tools compose? | `data/papers`, `data/sources` |
 | Self-evolution | How can agents improve memory, tools, skills, and code safely? | `data/papers`, `data/sources` |
 | Evaluation | How do we measure persistence, value, drift, and safety? | `data/papers`, `data/sources` |
@@ -62,7 +68,16 @@ node -e "const s=require('./data/sources/manifest.json'); console.table(s.filter
 
 ## What To Add Next
 
-- More primary sources on autopoiesis/adaptivity/teleology.
+- Primary sources on the neuroscience of volition (e.g. Libet) and the
+  attention/global-workspace gate that selects from the continuous stream
+  (Baars, Dehaene). (Self-cognition, default-mode/continuous thought,
+  association/creativity, and vision/goal-hierarchy are now seeded — see the
+  four new research layers above: Metzinger/Gallagher/Northoff/Seth,
+  Raichle/Christoff/Smallwood, Collins-Loftus/Mednick/Schacter-Addis,
+  Markus-Nurius/Deci-Ryan/Carver-Scheier/Powers. Self-determination theory is
+  now covered by Deci & Ryan 2000.)
+- An `existence-budget` source set: metabolic/economic governors of cognition,
+  since continuous thought and association both depend on it.
 - Current official docs when implementation begins, especially LangGraph,
   Mem0, Letta, OpenAI Agents SDK, and Temporal.
 - GitHub deep-dive reports only when a candidate will actually be integrated.

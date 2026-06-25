@@ -230,7 +230,7 @@ Before claiming integration works:
 | Check | Required Result |
 |---|---|
 | yizhi JSON manifests | Valid. |
-| yizhi paper DB | Still 39 papers unless manifest changed. |
+| yizhi paper DB | Still matches manifest length (53) unless manifest changed. |
 | ArbBot status read | Current phase and safety boundary observed correctly. |
 | No generated artifacts tracked | PDFs/SQLite/cache excluded. |
 | No live commands | No exchange order methods or credentials invoked. |

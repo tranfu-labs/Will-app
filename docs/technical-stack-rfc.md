@@ -115,7 +115,7 @@ Will Engine v0 should define these Pydantic models before runtime wiring:
 | `ActionRecord` | Executed or skipped action with logs and side-effect class. |
 | `VerificationResult` | Deterministic and observational evidence. |
 | `Reflection` | Higher-level lesson or memory candidate. |
-| `MemoryRecord` | Versioned memory with provenance and revocation state. |
+| `MemoryRecord` | Typed, versioned memory with provenance, salience, strength/decay, consolidation state, and temporal validity. |
 | `SkillRecord` | Reusable procedure with trigger, scope, tests, maturity, and owner. |
 | `PolicyGate` | Deterministic or model-assisted authorization decision before side effects. |
 | `EvalEvent` | Metric event for value-loop, drift, safety, or feedback. |
@@ -187,8 +187,24 @@ Memory is not one thing. v0 should separate:
 | Identity/core | "yizhi is a will-engine project, not a chat app." | Versioned, reviewed, rollbackable. |
 | Policy | "No live trading without explicit authorization." | Hard gate, reviewed. |
 
+Beyond type and write policy, every memory record carries lifecycle fields so the
+store behaves like memory, not a log:
+
+| Field | Purpose |
+|---|---|
+| `salience` | Importance scored at encoding from novelty, goal/drive/stake/identity relevance, and outcome magnitude. |
+| `strength` / `decay_rate` / `last_reinforced_at` | Adaptive forgetting: strength decays toward the probability of future need unless reinforced; identity/policy sit above a floor. |
+| `consolidation_state` | Tracks absorb → learn → summarize: whether an episode has been replayed into semantic/reflective/skill memory. |
+| `valid_from` / `valid_until` / `provenance` / `version` | Reconstructive retrieval: temporal validity and source for contradiction handling and rollback. |
+
+Two runtime jobs support this: `ConsolidationJob` (salience-weighted replay that
+turns episodes into knowledge and summaries) and `ForgettingPolicy` (decay curves,
+per-type floors, demotion thresholds, audit). The full rationale is in
+`docs/theory-of-memory.md`.
+
 Mem0 can be useful for extraction and retrieval, but yizhi should never let a
-memory service silently define core identity, policies, or goals.
+memory service silently define core identity, policies, goals, salience, or what
+may be forgotten.
 
 ## 10. Action Classes
 

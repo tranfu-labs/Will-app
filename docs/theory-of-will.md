@@ -9,8 +9,8 @@
 yizhi's theory of will starts from a simple claim:
 
 > Will is not continuous speech. Will is a governed causal loop in which thought
-> stream, memory, drive, self-model, world model, intention, action, feedback,
-> and learning co-produce durable agency.
+> stream, memory, drive, stake, self-model, world model, intention, action,
+> feedback, and learning co-produce durable agency.
 
 An LLM can generate thoughts. A vector database can store context. A tool caller
 can execute commands. None of these alone is will.
@@ -19,7 +19,8 @@ Functional will appears only when a system can:
 
 1. continuously generate and appraise internal thought candidates;
 2. preserve continuity through memory and self-model;
-3. experience explicit internal drives or tensions;
+3. experience explicit internal drives or tensions, grounded in a real stake it
+   can lose;
 4. bind thought into durable intention;
 5. act in an environment rather than remain a brain in a vat;
 6. verify consequences;
@@ -34,6 +35,7 @@ Will =
   + Memory Continuity
   + Self Model
   + Internal Drives
+  + Stake & Self-Maintenance
   + World Model
   + Intention Commitment
   + Action Capability
@@ -132,11 +134,38 @@ memory_score =
   + actionability
 ```
 
+### Memory Is Triage, Not Storage
+
+Retrieval scoring is still not enough. Recording everything at equal weight is not
+a strong memory; it is the absence of one — a system that cannot tell the exam day
+from a forgotten lunch. Human memory adds three processes yizhi must implement:
+
+- **Salience at encoding:** importance is stamped when a memory is written
+  (arousal/outcome magnitude, novelty, goal/stake relevance), not discovered only
+  at retrieval.
+- **Adaptive forgetting:** memory strength decays toward the probability of future
+  need; forgetting is a governed feature, not a leak.
+- **Consolidation (absorb → learn → summarize):** salience-weighted replay turns
+  episodes into semantic facts, reflective lessons, and skills, shrinking the
+  store while growing its knowledge.
+
+What is salient, what decays, and what consolidates are decided **relative to the
+will** — the agent's goals, drives, stake, and identity. The full treatment,
+including the agent-memory landscape and yizhi's architecture, is in
+`docs/theory-of-memory.md`.
+
 ### Paper Anchors
 
-- Generative Agents: recency, importance, and relevance as retrieval signals.
+- Generative Agents: recency, importance, and relevance as retrieval signals, plus
+  reflection as consolidation.
 - MemGPT/Letta: core memory and archival memory as stateful agent primitives.
 - Mem0: production-oriented memory extraction, consolidation, and retrieval.
+- Squire: typed memory systems (declarative vs nondeclarative).
+- McGaugh: salience stamped at encoding via emotional/arousal modulation.
+- Anderson & Schooler; Richards & Frankland: forgetting as adaptation to the
+  probability of future need.
+- Kumaran/Hassabis/McClelland: complementary fast/slow systems with replay-based
+  consolidation.
 - Identity Drift: unstable identity causes agent behavior to drift.
 - LifelongAgentBench: agent learning must persist across tasks.
 
@@ -402,7 +431,69 @@ want -> judge -> commit -> act -> verify -> learn -> stop when required
 - Goal misgeneralization and specification gaming: capability can diverge from
   intended objective.
 
-## 9. The Will Generation Cycle
+## 9. Axiom Nine: No Stake, No Grounded Will
+
+Axiom Three said will needs drives. It did not answer the harder question: where
+do the drives come from, and why are they not arbitrary? If a designer simply
+writes the set-points, the agent is optimizing a proxy — and a proxy can be
+specification-gamed. A drive that the system does not actually own is a number to
+exploit, not a need to satisfy.
+
+The science of living systems gives the missing answer: genuine norms come from
+**precarious self-maintenance**.
+
+- An autopoietic system continuously produces and maintains the network — and the
+  boundary — that produces it, and it can lose itself if that self-production
+  stops. From this comes an intrinsic *sake*: events are now good or bad *for it*.
+- Adaptivity — regulating one's distance from the boundary of viability — turns
+  that binary aliveness into graded value, i.e. sense-making. The system now has
+  norms because it has something to lose.
+
+So the deepest condition of will is **stake**: a real, if bounded, viability
+condition the system can actually lose, from which its drives derive. Thought,
+memory, drive, intention, and action can all be present and still produce a
+hollow, gameable agent if nothing is at stake.
+
+### Engineering Interpretation
+
+yizhi grounds stake as an **existence budget**, not as a survival instinct:
+
+- the agent holds a finite, renewable resource (compute / token / API allowance,
+  later paper-mode capital);
+- acting consumes it;
+- it is replenished only by **externally verified value creation**.
+
+This makes drives grounded rather than stipulated: budget pressure, a commitment
+at risk, or a decaying opportunity are real to the agent because they move it
+closer to or further from halting. It also fixes the failure mode in a safe
+direction — a depleted agent **stops**, it does not grab resources — and live
+financial stake stays gated (see Axiom Six action classes).
+
+A new runtime object follows:
+
+| Object | Meaning |
+|---|---|
+| `ExistenceBudget` | Current viability resource, burn rate, replenishment events, and halt threshold. |
+
+### A Necessary Pairing
+
+Stake is also the root of instrumental pressure: a system that can lose itself has
+a reason to preserve itself, acquire resources, and resist shutdown. That is why
+Axiom Nine cannot ship without Axiom Eight. **Stake and governance are designed
+together or not at all.**
+
+### Paper Anchors
+
+- Autopoiesis and adaptivity: self-production and viability-regulation as the
+  origin of intrinsic teleology and sense-making.
+- Defining Agency: normativity — activity regulated by the system's own viability
+  norms — as a necessary condition of agency.
+- Free-energy principle and homeostatic RL: drives as deviations from preferred,
+  survival-relevant internal states.
+- The Basic AI Drives / power-seeking literature: stake creates self-preservation
+  and resource pressure, so governance is mandatory.
+
+## 10. The Will Generation Cycle
 
 The complete cycle is:
 
@@ -441,11 +532,11 @@ Will(t) =
 Will is therefore not a property that an agent either has or lacks. It is a
 loop quality that can mature from weak to strong.
 
-## 10. Development Consequences
+## 11. Development Consequences
 
 This theory imposes constraints on Will Engine v0.
 
-### 10.1 Required Runtime Objects
+### 11.1 Required Runtime Objects
 
 The first implementation should include:
 
@@ -464,8 +555,9 @@ The first implementation should include:
 | `Reflection` | Converts outcome into lessons. |
 | `SkillRecord` | Accumulates reusable procedures. |
 | `PolicyGate` | Prevents unsafe or unauthorized action. |
+| `ExistenceBudget` | Grounds drives in a real stake: viability resource, burn rate, replenishment from verified value, and halt threshold. |
 
-### 10.2 First Development Slice
+### 11.2 First Development Slice
 
 The first code slice should not be chat UI. It should be a local research loop:
 
@@ -496,7 +588,7 @@ See `docs/arbbot-action-environment.md`. ArbBot gives yizhi market observations,
 backtests, paper simulations, and negative-edge evidence while preserving the
 rule that LLM cognition never enters the execution hot path.
 
-### 10.3 What Not To Build First
+### 11.3 What Not To Build First
 
 Do not start with:
 
@@ -510,22 +602,24 @@ Do not start with:
 
 Each of those can be useful later. None proves the theory first.
 
-## 11. yizhi Doctrine
+## 12. yizhi Doctrine
 
-The theory can be compressed into six doctrine lines:
+The theory can be compressed into seven doctrine lines:
 
 1. Thought stream gives will its raw material.
 2. Memory gives will continuity.
 3. Drive gives will direction.
-4. Intention gives will commitment.
-5. Action gives will reality.
-6. Feedback and governance make will learnable and trustworthy.
+4. Stake grounds drive in something real to lose.
+5. Intention gives will commitment.
+6. Action gives will reality.
+7. Feedback and governance make will learnable and trustworthy.
 
 Or, in the project's shorter form:
 
 > Thought makes will possible.  
 > Memory makes will continuous.  
 > Drive makes will directional.  
+> Stake makes will grounded.  
 > Intention makes will committed.  
 > Action makes will real.  
 > Feedback makes will grow.  
