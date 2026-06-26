@@ -23,13 +23,29 @@ Thresholds are deliberately conservative and documented; tighten them as evidenc
 
 from __future__ import annotations
 
+import os
 from dataclasses import dataclass
 from enum import Enum
 
-MIN_ENTERED = 20          # below this, a backtest result is noise, not evidence
-MIN_SHARPE = 0.5          # risk-adjusted return floor for a promotable edge
-MIN_PERSISTENCE = 0.6     # cross-venue funding-diff sign-stability floor (durable, not a blip)
-MIN_NET_BPS = 0.0         # must be net-positive AFTER fees
+# PROVISIONAL thresholds — the judge is only as honest as these floors, and they are NOT yet
+# calibrated against labeled ground truth (we have none). They encode conservative priors, and
+# each is operator-tunable via an env var so they can be moved as evidence accrues without a
+# code change. Rationale:
+#   MIN_ENTERED=20  — a win-rate / mean-return estimate from <20 entries has a confidence
+#                     interval too wide to call edge-vs-luck; below it the verdict is a refusal
+#                     to conclude (INSUFFICIENT), not a finding. (A rule of thumb, not a proof —
+#                     the right number depends on per-trade variance; tune it.)
+#   MIN_SHARPE=0.5  — a deliberately low risk-adjusted floor: a real, tradeable funding-diff
+#                     edge should clear it comfortably; near-zero Sharpe with positive net is
+#                     likely fee/timing noise, so ITERATE not PROMOTE.
+#   MIN_PERSISTENCE=0.6 — the cross-venue funding-diff must keep its sign in >60% of periods to
+#                     be a durable structural spread rather than a transient blip.
+#   MIN_NET_BPS=0.0 — must be net-POSITIVE after fees; break-even is no edge.
+# Treat any PROMOTE as a *candidate* to confirm out-of-sample, never a green light.
+MIN_ENTERED = int(os.environ.get("YIZHI_JUDGE_MIN_ENTERED", "20"))
+MIN_SHARPE = float(os.environ.get("YIZHI_JUDGE_MIN_SHARPE", "0.5"))
+MIN_PERSISTENCE = float(os.environ.get("YIZHI_JUDGE_MIN_PERSISTENCE", "0.6"))
+MIN_NET_BPS = float(os.environ.get("YIZHI_JUDGE_MIN_NET_BPS", "0.0"))
 
 
 class Verdict(str, Enum):
