@@ -79,6 +79,47 @@ def cmd_step(args: argparse.Namespace) -> int:
     return 0
 
 
+def _make_vps_fetch_hook(escalate: bool = True) -> "Any":
+    """A6 frontier-widening hook for `yizhi run --fetch-on-exhaust`. On exhaustion the
+    runner calls this OFF-LOOP (run_step never SSHes): it invokes the VPS fetch script,
+    escalating depth/breadth each call, and returns True iff the funding cache actually
+    changed — so a barren fetch reports no new data and the run halts cleanly. Opt-in;
+    needs VPS access. The fetch is plumbing the offline suite cannot exercise; the runner
+    mechanism it feeds is covered with a fake hook in tests/test_runner.py."""
+    import hashlib
+    import os
+    import subprocess
+    import sys
+    from pathlib import Path
+
+    from yizhi.environments.arbbot import DEFAULT_FUNDING_CACHE
+
+    cache = Path(DEFAULT_FUNDING_CACHE)
+    script = str(Path(__file__).resolve().parents[1] / "scripts" / "fetch_funding_via_vps.py")
+    state = {"calls": 0}
+
+    def _digest() -> str:
+        try:
+            return hashlib.sha256(cache.read_bytes()).hexdigest()
+        except OSError:
+            return ""
+
+    def hook() -> bool:
+        state["calls"] += 1
+        env = dict(os.environ)
+        if escalate:  # ask for progressively deeper history + a wider long tail each time
+            env["YIZHI_FETCH_HIST_LIMIT"] = str(200 + 300 * state["calls"])
+            env["YIZHI_FETCH_N_LONGTAIL"] = str(12 + 12 * state["calls"])
+        before = _digest()
+        proc = subprocess.run([sys.executable, script], env=env, capture_output=True, text=True)
+        if proc.returncode != 0:
+            print(f"  fetch hook: VPS fetch failed — {proc.stderr.strip()[-200:]}")
+            return False
+        return _digest() != before
+
+    return hook
+
+
 def cmd_run(args: argparse.Namespace) -> int:
     db_path = init_db(args.db)
     state = load_or_create_state(db_path)
@@ -89,6 +130,7 @@ def cmd_run(args: argparse.Namespace) -> int:
     def on_step(n: int, result: Any, st: WillState) -> None:
         print(f"step {n:>3}: status={result.loop_status} action={result.proposal_id} budget={st.budget.balance:.1f}")
 
+    fetch_hook = _make_vps_fetch_hook() if getattr(args, "fetch_on_exhaust", False) else None
     outcome = run_until(
         env,
         state,
@@ -97,6 +139,7 @@ def cmd_run(args: argparse.Namespace) -> int:
         stop_on_stuck=not args.no_stuck_stop,
         sleep=args.sleep,
         on_step=on_step,
+        fetch_hook=fetch_hook,
     )
     _print_kv(
         {
@@ -104,6 +147,7 @@ def cmd_run(args: argparse.Namespace) -> int:
             "stop_reason": outcome.stop_reason,
             "budget": f"{outcome.budget_balance:.1f}",
             "halted": outcome.halted,
+            "data_fetches": outcome.fetches,
         }
     )
     return 0
@@ -171,6 +215,12 @@ def build_parser() -> argparse.ArgumentParser:
     run_parser.add_argument("--vision", default=None, help="Seed/override the standing north-star vision")
     run_parser.add_argument("--sleep", type=float, default=0.0, help="Seconds to pause between steps (rate politeness)")
     run_parser.add_argument("--no-stuck-stop", action="store_true", help="Disable semantic stuck-detection halt")
+    run_parser.add_argument(
+        "--fetch-on-exhaust",
+        action="store_true",
+        help="On frontier exhaustion, fetch deeper/broader funding data via the VPS and continue "
+        "instead of halting (A6; opt-in, needs VPS access). run_step still never SSHes.",
+    )
     run_parser.set_defaults(func=cmd_run)
 
     events_parser = subparsers.add_parser("events", help="Print recent events")

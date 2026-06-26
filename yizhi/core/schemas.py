@@ -103,6 +103,7 @@ class EventType(StrEnum):
     CRITIQUE_RAISED = "CritiqueRaised"
     HYPOTHESIS_AUTHORED = "HypothesisAuthored"
     JUDGMENT_RENDERED = "JudgmentRendered"
+    DATA_REQUESTED = "DataRequested"
     ROLLBACK_REQUESTED = "RollbackRequested"
     ROLLBACK_COMPLETED = "RollbackCompleted"
     INTENTION_RETIRED = "IntentionRetired"

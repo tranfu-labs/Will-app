@@ -33,7 +33,7 @@ from yizhi.core.schemas import EventType, WillState
 from yizhi.engine.budget import COGNITION_COST, can_afford
 from yizhi.engine.loop import LoopRunResult, run_step
 from yizhi.environments.base import ActionEnvironment
-from yizhi.state.store import list_events
+from yizhi.state.store import append_event, list_events
 
 # Stop reasons (deterministic control decisions — no LLM in the control plane).
 STOP_MAX_STEPS = "max-steps"          # structural ceiling — ALWAYS applies, even if budget replenishes
@@ -48,6 +48,7 @@ class RunOutcome:
     stop_reason: str
     budget_balance: float
     halted: bool
+    fetches: int = 0
 
 
 def _action_key(event: dict) -> tuple:
@@ -101,14 +102,26 @@ def run_until(
     stuck_window: int = 4,
     sleep: float = 0.0,
     on_step: Callable[[int, LoopRunResult, WillState], None] | None = None,
+    fetch_hook: Callable[[], bool] | None = None,
+    max_fetches: int = 2,
 ) -> RunOutcome:
     """Loop `run_step` until a stop condition fires. `state` is mutated in place by
     `run_step` (budget/goals/loop_count) and snapshotted each loop, so passing it
     through is also the resume path. Belt-and-suspenders termination: a structural
     `max_steps` ceiling that ALWAYS applies, plus the economic budget halt and the
-    semantic stuck-detector — no single condition can let an unattended run spin."""
+    semantic stuck-detector — no single condition can let an unattended run spin.
+
+    A6 — autonomous data frontier: stuck-detection is yizhi's frontier-exhaustion
+    signal (the shallow data has no unexplored, judgeable probe left). With a
+    `fetch_hook` configured (opt-in), exhaustion WIDENS the data frontier instead of
+    halting: the hook fetches deeper/broader funding history off-loop (`run_step`
+    never SSHes — it only reads the cache), and the run continues on the new data.
+    The hook returns True iff it got genuinely new data; `max_fetches` bounds it so a
+    barren fetch cannot spin. Default (no hook) is unchanged: exhaustion halts."""
     steps = 0
     consecutive_errors = 0
+    fetches = 0
+    stuck_cooldown = 0
     reason = STOP_MAX_STEPS
     while steps < max_steps:
         # Economic stop: if the budget can't afford even to think, stop rather than
@@ -116,10 +129,30 @@ def run_until(
         if state.budget.halted or not can_afford(state.budget, COGNITION_COST):
             reason = STOP_BUDGET
             break
-        # Semantic stop: repetition/ping-pong over the recent action events.
-        if stop_on_stuck:
+        # Semantic stop: repetition/ping-pong over the recent action events. The
+        # cooldown after a fetch lets fresh post-fetch actions refill the window
+        # before we judge exhaustion again.
+        if stop_on_stuck and stuck_cooldown <= 0:
             stuck = detect_stuck(_recent_actions(db_path, window=stuck_window), window=stuck_window)
             if stuck is not None:
+                # Frontier exhausted. Widen the DATA frontier if we can, else halt.
+                if fetch_hook is not None and fetches < max_fetches:
+                    try:
+                        got_new = bool(fetch_hook())
+                    except Exception:
+                        got_new = False
+                    if got_new:
+                        fetches += 1
+                        stuck_cooldown = stuck_window + 1
+                        append_event(
+                            EventType.DATA_REQUESTED,
+                            aggregate_type="data",
+                            aggregate_id=state.id,
+                            payload={"trigger": stuck, "fetch": fetches},
+                            correlation_id=state.id,
+                            path=db_path,
+                        )
+                        continue
                 reason = f"{STOP_STUCK}:{stuck}"
                 break
         try:
@@ -135,6 +168,8 @@ def run_until(
             continue
         consecutive_errors = 0
         steps += 1
+        if stuck_cooldown > 0:
+            stuck_cooldown -= 1
         if on_step is not None:
             on_step(steps, result, state)
         if sleep > 0:
@@ -144,4 +179,5 @@ def run_until(
         stop_reason=reason,
         budget_balance=state.budget.balance,
         halted=state.budget.halted,
+        fetches=fetches,
     )

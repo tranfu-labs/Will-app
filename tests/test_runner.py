@@ -101,3 +101,52 @@ def test_run_until_resumes_from_snapshot(tmp_path):
     run_until(SelfRepoEnvironment(), first, db, max_steps=2, stop_on_stuck=False)
     reloaded = load_or_create_state(db)
     assert reloaded.loop_count >= 2                             # state persisted across the runner boundary
+
+
+# ---- A6: autonomous data-frontier widening on exhaustion ----
+
+def test_run_until_fetch_hook_widens_frontier_instead_of_halting(tmp_path):
+    # With a fetch_hook, frontier exhaustion (stuck) WIDENS the data frontier and continues
+    # instead of halting — bounded by max_fetches. self_repo re-proposes the same action, so
+    # it re-exhausts after each cooldown until the fetch budget is spent. run_step never SSHes.
+    from yizhi.state.store import list_events
+
+    db = tmp_path / "run.sqlite"
+    state = load_or_create_state(db)
+    state.budget = state.budget.model_copy(update={"balance": 1000.0})   # isolate from the budget stop
+    calls = {"n": 0}
+
+    def hook() -> bool:
+        calls["n"] += 1
+        return True                                            # "got genuinely new data"
+
+    outcome = run_until(SelfRepoEnvironment(), state, db, max_steps=80, stuck_window=4,
+                        fetch_hook=hook, max_fetches=2)
+    assert outcome.fetches == 2 and calls["n"] == 2            # widened twice, then bounded
+    assert outcome.steps > 4                                   # did NOT halt at the first exhaustion
+    assert outcome.stop_reason.startswith(STOP_STUCK)          # halts once the fetch budget is spent
+    assert len(list_events(path=db, event_type="DataRequested")) == 2
+
+
+def test_run_until_barren_fetch_halts(tmp_path):
+    # A hook reporting no new data (False) must NOT keep the run alive — exhaustion halts.
+    db = tmp_path / "run.sqlite"
+    state = load_or_create_state(db)
+    state.budget = state.budget.model_copy(update={"balance": 1000.0})
+    calls = {"n": 0}
+
+    def hook() -> bool:
+        calls["n"] += 1
+        return False                                           # nothing new fetched
+
+    outcome = run_until(SelfRepoEnvironment(), state, db, max_steps=50, stuck_window=4, fetch_hook=hook)
+    assert calls["n"] == 1 and outcome.fetches == 0            # tried once, got nothing
+    assert outcome.steps == 4 and outcome.stop_reason.startswith(STOP_STUCK)
+
+
+def test_run_until_no_hook_halts_unchanged(tmp_path):
+    # Default (no fetch_hook) is the prior behavior exactly: exhaustion halts, zero fetches.
+    db = tmp_path / "run.sqlite"
+    state = load_or_create_state(db)
+    outcome = run_until(SelfRepoEnvironment(), state, db, max_steps=50, stuck_window=4)
+    assert outcome.fetches == 0 and outcome.steps == 4 and outcome.stop_reason.startswith(STOP_STUCK)

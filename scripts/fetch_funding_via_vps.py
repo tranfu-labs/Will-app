@@ -9,10 +9,15 @@ locally — yizhi's loop never SSHes (deterministic, offline-testable, fast).
 
 Run periodically/on demand to refresh the universe:
     python scripts/fetch_funding_via_vps.py
+
+Depth/breadth are env-tunable so yizhi's A6 frontier-widening can request MORE data
+on exhaustion (more history per symbol resolves the judge's INSUFFICIENT verdicts):
+    YIZHI_FETCH_HIST_LIMIT=500 YIZHI_FETCH_N_LONGTAIL=24 python scripts/fetch_funding_via_vps.py
 """
 from __future__ import annotations
 
 import json
+import os
 import pathlib
 import subprocess
 import sys
@@ -68,9 +73,15 @@ def main() -> int:
     if not PEM.exists():
         print(f"VPS key not found at {PEM}; see docs/data-via-vps.md", file=sys.stderr)
         return 1
+    # Depth/breadth are env-tunable (A6 frontier-widening requests more on exhaustion).
+    hist_limit = int(os.environ.get("YIZHI_FETCH_HIST_LIMIT", "200"))
+    n_longtail = int(os.environ.get("YIZHI_FETCH_N_LONGTAIL", "12"))
+    script = VPS_FETCH.replace("N_LONGTAIL = 12", f"N_LONGTAIL = {n_longtail}").replace(
+        "HIST_LIMIT = 200", f"HIST_LIMIT = {hist_limit}"
+    )
     proc = subprocess.run(
         ["ssh", "-i", str(PEM), "-o", "ConnectTimeout=20", VPS, "cd ~/arbbot && .venv/bin/python -"],
-        input=VPS_FETCH, capture_output=True, text=True, timeout=420,
+        input=script, capture_output=True, text=True, timeout=420,
     )
     if MARKER not in proc.stdout:
         print("VPS fetch failed:\n" + (proc.stderr[-1000:] or proc.stdout[-1000:]), file=sys.stderr)
