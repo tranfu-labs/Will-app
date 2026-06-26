@@ -269,25 +269,11 @@ def run_step(env: ActionEnvironment, state: WillState, db_path: str | Path) -> L
         g0 = state.goals[0]
         goal_text = f"{g0.title} — {g0.description}".rstrip(" —") if g0.description else g0.title
     arbbot_proposals = env.propose_actions(state)
-    # A2.2 — authored hypothesis: when the env exposes a parameter space (a backtest universe),
-    # let the LLM AUTHOR one concrete backtest with a SELF-CHOSEN threshold (not just pick an
-    # enumerated index) from the universe + ledger + any standing critique note. It is injected
-    # as one more candidate the chooser may take. Both walls hold: the env builds the command
-    # from its own vocabulary (wall 1) and run_policy_gate re-validates the params (wall 2).
-    # Auto-disabled when the env has no universe (e.g. self_repo) or the LLM is off.
-    if llm is not None and hasattr(env, "backtest_universe"):
-        universe = env.backtest_universe()
-        if universe:
-            author_ledger, _ = _build_frontier(memory_store, arbbot_proposals)
-            spec = author_backtest(
-                llm, universe, author_ledger, recalled=recalled,
-                budget_balance=state.budget.balance, budget_pressure=budget_pressure(state.budget),
-                on_fallback=_llm_fallback_sink(db_path, loop_id, event_ids, "author"),
-            )
-            if spec is not None:
-                authored = env.authored_backtest(spec)
-                arbbot_proposals = [authored] + arbbot_proposals
-                _append(db_path, EventType.HYPOTHESIS_AUTHORED, "action_proposal", authored.id, authored, loop_id, event_ids=event_ids)
+    # A2.2 — let the LLM AUTHOR one concrete backtest (a self-chosen threshold) into the menu
+    # when the env exposes a parameter space; both walls still hold. No-op otherwise.
+    arbbot_proposals = _inject_authored_hypothesis(
+        env, llm, state, arbbot_proposals, memory_store, recalled, db_path, loop_id, event_ids,
+    )
     proposal = choose_proposal(
         arbbot_proposals, environment,
         llm=llm, thoughts=thoughts, intention=intention, recalled=recalled,
@@ -410,63 +396,13 @@ def run_step(env: ActionEnvironment, state: WillState, db_path: str | Path) -> L
     )
     state.memory_ids.append(reflection_memory.id)
 
-    # Edge-knowledge extraction: turn the action's real output into a durable,
-    # subject-keyed project finding (the experiment ledger) — only for genuine
-    # experiment probes, so routine checks (git status, safety) neither pollute the
-    # ledger nor earn the replenishment. Re-running the same probe supersedes the
-    # prior finding so the ledger stays current; grounded to the command.
-    #
-    # When the action produced structured backtest metrics, a DETERMINISTIC judgment
-    # (kill/iterate/promote/insufficient by fixed rules) is the finding — the verdict, not an
-    # LLM's reading of stdout, is what enters the ledger. This is what stops a single lucky
-    # window (n_entered=1) being recorded as an edge. Other experiment probes keep the LLM
-    # extraction.
-    judgment = judge_backtest(action_record.metrics) if action_record else None
-    if judgment is not None:
-        _append(
-            db_path, EventType.JUDGMENT_RENDERED, "judgment", action_record.id,
-            {"verdict": judgment.verdict.value, "confidence": judgment.confidence, "reasons": judgment.reasons},
-            loop_id, event_ids=event_ids,
-        )
-        finding = judgment_finding(judgment)
-    elif proposal.experiment:
-        finding = extract_finding(
-            llm, action_record, verification,
-            on_fallback=_llm_fallback_sink(db_path, loop_id, event_ids, "finding"),
-        )
-    else:
-        finding = None
-    produced_new = False
-    if finding is not None:
-        subject = probe_subject(action_record.command) if action_record else None
-        prior = next(
-            (
-                m.content
-                for m in memory_store.backend.all(live_only=True)
-                if m.subject == subject and m.kind == "arbbot:experiment" and m.valid_until is None
-            ),
-            None,
-        )
-        finding_memory = memory_store.remember(
-            finding,
-            memory_type=MemoryType.SEMANTIC,
-            kind="arbbot:experiment",
-            subject=subject,
-            grounding=[" ".join(action_record.command)] if action_record else [],
-            source=MemorySource.INFERRED,
-            will_state=state,
-            signals=derive_signals(finding, state, drive_relevance=drive_rel),
-        )
-        state.memory_ids.append(finding_memory.id)
-        # Stake closes ONLY on conclusive knowledge: a confirmed edge (PROMOTE) or a confirmed
-        # dead end (KILL) is genuine value and pays; an INSUFFICIENT/ITERATE backtest is not yet
-        # knowledge and must NOT replenish, or the economy would reward noise (e.g. a single
-        # lucky window). Non-backtest findings (judgment is None) keep the novelty-only rule.
-        conclusive = judgment is None or judgment.verdict in CONCLUSIVE
-        produced_new = is_new_knowledge(prior, finding) and conclusive
-        if produced_new:
-            state.budget = replenish(state.budget, KNOWLEDGE_REPLENISH)
-            _append(db_path, EventType.BUDGET_REPLENISHED, "budget", state.id, state.budget, loop_id, event_ids=event_ids)
+    # Edge-knowledge: judge the backtest deterministically (or LLM-extract a non-backtest
+    # finding), record it in the subject-keyed experiment ledger, and replenish the budget
+    # only on CONCLUSIVE new knowledge. Returns whether genuinely new knowledge was produced.
+    produced_new = _judge_and_record_finding(
+        action_record, proposal, verification, llm, memory_store, state,
+        drive_rel, db_path, loop_id, event_ids,
+    )
 
     # Calibration: score the pre-action prediction against the objective outcome
     # (did the experiment produce new verified knowledge?) — a Brier score, not the
@@ -543,62 +479,13 @@ def run_step(env: ActionEnvironment, state: WillState, db_path: str | Path) -> L
             loop_id, event_ids=event_ids,
         )
 
-    # Goal-genesis + planning: yizhi sets its OWN next goal from the ledger + frontier
-    # and (de)composes it into a multi-loop plan. A new goal supersedes any in-flight
-    # plan; otherwise a stalled plan is re-decomposed. All plan control lives here in the
-    # loop tail, touching only state + the event log (memory is never altered) — the
-    # LangGraph-swappable seam. Deterministic default: no LLM -> no goal, no plan.
-    if llm is not None and state.vision:
-        ledger, frontier = _build_frontier(memory_store, arbbot_proposals)
-        new_goal = generate_goal(
-            llm, state.vision, state.goals[0] if state.goals else None, ledger,
-            state.budget.balance, budget_pressure(state.budget),
-            frontier=frontier, recalled=recalled,
-            on_fallback=_llm_fallback_sink(db_path, loop_id, event_ids, "goal"),
-        )
-        if new_goal is not None:
-            state.goals = [new_goal]
-            _append(db_path, EventType.GOAL_SET, "goal", new_goal.id, new_goal, loop_id, event_ids=event_ids)
-            fresh = decompose_goal(
-                llm, new_goal, arbbot_proposals, frontier,
-                state.budget.balance, budget_pressure(state.budget),
-                max_steps=_plan_depth(state.budget), recalled=recalled,
-                on_fallback=_llm_fallback_sink(db_path, loop_id, event_ids, "decompose"),
-            )
-            state.active_plan = fresh   # None => single-step (unchanged behavior)
-            if fresh is not None:
-                _append(db_path, EventType.PLAN_CREATED, "plan", fresh.id, fresh, loop_id, event_ids=event_ids)
-        else:
-            # goal kept; re-decompose only if the in-flight plan has stalled out
-            plan = state.active_plan
-            if plan is not None and plan.status == PlanStatus.ACTIVE and plan.stall_count >= STALL_BUDGET:
-                replan = decompose_goal(
-                    llm, state.goals[0] if state.goals else None, arbbot_proposals, frontier,
-                    state.budget.balance, budget_pressure(state.budget),
-                    max_steps=_plan_depth(state.budget),
-                    failure_context=f"stalled {plan.stall_count} loops; last status {getattr(preliminary_status, 'value', preliminary_status)}",
-                    recalled=recalled,
-                    on_fallback=_llm_fallback_sink(db_path, loop_id, event_ids, "replan"),
-                )
-                if replan is not None:
-                    replan.revision = plan.revision + 1
-                    state.active_plan = replan
-                    _append(db_path, EventType.PLAN_REPLANNED, "plan", replan.id, replan, loop_id, event_ids=event_ids)
-                else:
-                    state.active_plan = None
-
-        # Critique faculty: question a 'no edge' result that may be a FALSE NEGATIVE and
-        # leave a high-salience standing self-note to RE-TEST it (a filtered backtest). yizhi
-        # does NOT decide truth here — the deterministic backtest oracle does, on a later loop.
-        critique = generate_critique(llm, ledger, on_fallback=_llm_fallback_sink(db_path, loop_id, event_ids, "critique"))
-        if critique is not None:
-            _append(db_path, EventType.CRITIQUE_RAISED, "critique", loop_id, critique, loop_id, event_ids=event_ids)
-            note = critique_memory(critique)
-            crit_mem = memory_store.remember(
-                note, memory_type=MemoryType.REFLECTIVE, kind="self:critique", subject="self/critique",
-                will_state=state, signals=derive_signals(note, state, novelty=1.0, stake_relevance=1.0), source=MemorySource.INFERRED,
-            )
-            state.memory_ids.append(crit_mem.id)
+    # Deliberation tail: yizhi self-sets the next goal, (de)composes/replans it, and
+    # critiques a possible false negative. The LangGraph-swappable seam — it touches only
+    # state + the event log (plus the critique's standing note). No-op when LLM/vision off.
+    _deliberate_next_goal(
+        llm, state, memory_store, arbbot_proposals, recalled,
+        preliminary_status, db_path, loop_id, event_ids,
+    )
 
     # Cap the audit list of created-memory ids so WillState (and thus every snapshot)
     # does not grow without bound over a long run. It is an audit trail, never iterated
@@ -633,6 +520,152 @@ def run_step(env: ActionEnvironment, state: WillState, db_path: str | Path) -> L
         verification_status=("passed" if verification and verification.passed else "failed" if verification else "not_run"),
         loop_status=eval_event.status,
     )
+
+
+def _inject_authored_hypothesis(env, llm, state, arbbot_proposals, memory_store, recalled,
+                                db_path, loop_id, event_ids):
+    """A2.2 — authored hypothesis: when the env exposes a parameter space (`backtest_universe`),
+    let the LLM AUTHOR one concrete backtest with a SELF-CHOSEN threshold (not just pick an
+    enumerated index) from the universe + ledger + any standing critique note, and inject it as
+    one more candidate the chooser may take. Both walls hold: the env builds the command from its
+    OWN vocabulary (wall 1: authoring can only parameterize a declared sentinel) and
+    run_policy_gate re-validates the params (wall 2). Returns the proposal list unchanged when
+    the env has no universe (e.g. self_repo), the LLM is off, or it authors nothing."""
+    if llm is None or not hasattr(env, "backtest_universe"):
+        return arbbot_proposals
+    universe = env.backtest_universe()
+    if not universe:
+        return arbbot_proposals
+    author_ledger, _ = _build_frontier(memory_store, arbbot_proposals)
+    spec = author_backtest(
+        llm, universe, author_ledger, recalled=recalled,
+        budget_balance=state.budget.balance, budget_pressure=budget_pressure(state.budget),
+        on_fallback=_llm_fallback_sink(db_path, loop_id, event_ids, "author"),
+    )
+    if spec is None:
+        return arbbot_proposals
+    authored = env.authored_backtest(spec)
+    _append(db_path, EventType.HYPOTHESIS_AUTHORED, "action_proposal", authored.id, authored, loop_id, event_ids=event_ids)
+    return [authored] + arbbot_proposals
+
+
+def _judge_and_record_finding(action_record, proposal, verification, llm, memory_store, state,
+                              drive_rel, db_path, loop_id, event_ids) -> bool:
+    """Turn the action's real output into a durable, subject-keyed experiment-ledger finding,
+    and replenish the budget only on CONCLUSIVE new knowledge. When the action produced
+    structured backtest metrics, a DETERMINISTIC judgment (kill/iterate/promote/insufficient by
+    fixed rules) IS the finding — the verdict, not an LLM's reading of stdout, enters the ledger,
+    so a single lucky window (n_entered=1) is never recorded as an edge. Other experiment probes
+    keep the LLM extraction; routine checks (git status) produce no finding. Re-running a probe
+    supersedes its prior finding. Returns whether genuinely new knowledge was produced (drives
+    the calibration outcome). The stake closes only on PROMOTE/KILL (or a novel non-backtest
+    finding) — INSUFFICIENT/ITERATE is not yet knowledge and must not pay, or the economy would
+    reward noise."""
+    judgment = judge_backtest(action_record.metrics) if action_record else None
+    if judgment is not None:
+        _append(
+            db_path, EventType.JUDGMENT_RENDERED, "judgment", action_record.id,
+            {"verdict": judgment.verdict.value, "confidence": judgment.confidence, "reasons": judgment.reasons},
+            loop_id, event_ids=event_ids,
+        )
+        finding = judgment_finding(judgment)
+    elif proposal.experiment:
+        finding = extract_finding(
+            llm, action_record, verification,
+            on_fallback=_llm_fallback_sink(db_path, loop_id, event_ids, "finding"),
+        )
+    else:
+        finding = None
+    if finding is None:
+        return False
+    subject = probe_subject(action_record.command) if action_record else None
+    prior = next(
+        (
+            m.content
+            for m in memory_store.backend.all(live_only=True)
+            if m.subject == subject and m.kind == "arbbot:experiment" and m.valid_until is None
+        ),
+        None,
+    )
+    finding_memory = memory_store.remember(
+        finding,
+        memory_type=MemoryType.SEMANTIC,
+        kind="arbbot:experiment",
+        subject=subject,
+        grounding=[" ".join(action_record.command)] if action_record else [],
+        source=MemorySource.INFERRED,
+        will_state=state,
+        signals=derive_signals(finding, state, drive_relevance=drive_rel),
+    )
+    state.memory_ids.append(finding_memory.id)
+    conclusive = judgment is None or judgment.verdict in CONCLUSIVE
+    produced_new = is_new_knowledge(prior, finding) and conclusive
+    if produced_new:
+        state.budget = replenish(state.budget, KNOWLEDGE_REPLENISH)
+        _append(db_path, EventType.BUDGET_REPLENISHED, "budget", state.id, state.budget, loop_id, event_ids=event_ids)
+    return produced_new
+
+
+def _deliberate_next_goal(llm, state, memory_store, arbbot_proposals, recalled,
+                          preliminary_status, db_path, loop_id, event_ids) -> None:
+    """The loop's deliberation tail: yizhi sets its OWN next goal from the experiment ledger
+    + frontier, (de)composes it into a multi-loop plan (a new goal supersedes an in-flight
+    plan; a stalled plan is re-decomposed), and raises a critique of any 'no edge' result that
+    may be a FALSE NEGATIVE (leaving a standing re-test note the backtest oracle later judges).
+    All plan control lives here, touching only state + the event log — the LangGraph-swappable
+    seam. Deterministic default: no LLM / no vision -> no goal, no plan, no critique."""
+    if llm is None or not state.vision:
+        return
+    ledger, frontier = _build_frontier(memory_store, arbbot_proposals)
+    new_goal = generate_goal(
+        llm, state.vision, state.goals[0] if state.goals else None, ledger,
+        state.budget.balance, budget_pressure(state.budget),
+        frontier=frontier, recalled=recalled,
+        on_fallback=_llm_fallback_sink(db_path, loop_id, event_ids, "goal"),
+    )
+    if new_goal is not None:
+        state.goals = [new_goal]
+        _append(db_path, EventType.GOAL_SET, "goal", new_goal.id, new_goal, loop_id, event_ids=event_ids)
+        fresh = decompose_goal(
+            llm, new_goal, arbbot_proposals, frontier,
+            state.budget.balance, budget_pressure(state.budget),
+            max_steps=_plan_depth(state.budget), recalled=recalled,
+            on_fallback=_llm_fallback_sink(db_path, loop_id, event_ids, "decompose"),
+        )
+        state.active_plan = fresh   # None => single-step (unchanged behavior)
+        if fresh is not None:
+            _append(db_path, EventType.PLAN_CREATED, "plan", fresh.id, fresh, loop_id, event_ids=event_ids)
+    else:
+        # goal kept; re-decompose only if the in-flight plan has stalled out
+        plan = state.active_plan
+        if plan is not None and plan.status == PlanStatus.ACTIVE and plan.stall_count >= STALL_BUDGET:
+            replan = decompose_goal(
+                llm, state.goals[0] if state.goals else None, arbbot_proposals, frontier,
+                state.budget.balance, budget_pressure(state.budget),
+                max_steps=_plan_depth(state.budget),
+                failure_context=f"stalled {plan.stall_count} loops; last status {getattr(preliminary_status, 'value', preliminary_status)}",
+                recalled=recalled,
+                on_fallback=_llm_fallback_sink(db_path, loop_id, event_ids, "replan"),
+            )
+            if replan is not None:
+                replan.revision = plan.revision + 1
+                state.active_plan = replan
+                _append(db_path, EventType.PLAN_REPLANNED, "plan", replan.id, replan, loop_id, event_ids=event_ids)
+            else:
+                state.active_plan = None
+
+    # Critique faculty: question a 'no edge' result that may be a FALSE NEGATIVE and leave a
+    # high-salience standing self-note to RE-TEST it (a filtered backtest). yizhi does NOT
+    # decide truth here — the deterministic backtest oracle does, on a later loop.
+    critique = generate_critique(llm, ledger, on_fallback=_llm_fallback_sink(db_path, loop_id, event_ids, "critique"))
+    if critique is not None:
+        _append(db_path, EventType.CRITIQUE_RAISED, "critique", loop_id, critique, loop_id, event_ids=event_ids)
+        note = critique_memory(critique)
+        crit_mem = memory_store.remember(
+            note, memory_type=MemoryType.REFLECTIVE, kind="self:critique", subject="self/critique",
+            will_state=state, signals=derive_signals(note, state, novelty=1.0, stake_relevance=1.0), source=MemorySource.INFERRED,
+        )
+        state.memory_ids.append(crit_mem.id)
 
 
 def _preliminary_status(
