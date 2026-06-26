@@ -44,6 +44,12 @@ ssh -i ~/Downloads/ArbBot.pem ubuntu@13.158.71.214
 
 VPS 取真 Binance+Bybit 数据,经"快照→持续性→真回测"三层过滤,在 **ID** 上跑出项目首个**正面 edge 证据**(扣费后净 +865bps,过滤后 Sharpe 0.90/胜率 79%,well-calibrated);主流 BTC 确认无边(-1870bps);多数长尾快照大但持续性差=噪声。**长尾有真边、但须持续性+真回测过滤**——全部真数据,无合成。
 
+## 更新(2026-06,确定性裁决 + 深度取数后)
+
+> **⚠️ 上面"ID +865bps 首个正边"是确定性 judge 建成前的人工解读,过度乐观。** `engine/judgment.py` 用固定规则判(样本量门 `n_entered≥20` 先行→否则 INSUFFICIENT;扣费净≤0→KILL;净>0且持续/Sharpe 达标→PROMOTE)。用 `YIZHI_FETCH_HIST_LIMIT=500 N_LONGTAIL=24` 取了更深更广数据后全扫:**12 KILL(enter-all 扣费净全负)+ 36 INSUFFICIENT(过滤后样本 <20)= 0 PROMOTE / 0 ITERATE**——在可得数据上**没有可确认的长尾边**。
+>
+> **硬约束(关键):交易所 funding 历史 API 只给 ~1 个月(~98 个 8h 周期),`HIST_LIMIT=500` 顶不上去。** 过滤到高质量窗口后必然剩个位数~十几个,judge 如实判 INSUFFICIENT。**绑定约束已从 agent/环境/判断移到「数据可得性」**:要确认长尾边,需更长历史(此 API 给不了)或换数据源(归档/付费 funding 数据)。论点"边在长尾"**未证实也未证伪**——judge 诚实地说"enter-all 亏、过滤后判不了"。
+
 ## 切记
 
 - **取交易所数据 → 永远 VPS。** 本机直连 = 超时,别试。
