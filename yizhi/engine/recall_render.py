@@ -39,13 +39,18 @@ def render_recall(memories: Iterable[MemoryRecord], *, k: int = 5, label: str = 
     return f"{label}:\n" + "\n".join(lines)
 
 
-def merge_recall(standing: Iterable[MemoryRecord], contextual: Iterable[MemoryRecord]) -> list[MemoryRecord]:
-    """Combine the two recall channels into one deduped list, standing first so a
-    caution/identity lesson always leads. A memory surfaced by both channels appears
-    once, keeping its (leading) standing position — the loop's read-closure."""
+def merge_recall(
+    standing: Iterable[MemoryRecord],
+    contextual: Iterable[MemoryRecord],
+    due: Iterable[MemoryRecord] = (),
+) -> list[MemoryRecord]:
+    """Combine the recall channels into one deduped list: standing first so a caution/identity
+    lesson always leads, then due prospective (a deferred intention whose time has come), then
+    contextual. A memory surfaced by more than one channel appears once, keeping its earliest
+    (highest-priority) position — the loop's read-closure."""
     seen: set[str] = set()
     merged: list[MemoryRecord] = []
-    for memory in [*standing, *contextual]:
+    for memory in [*standing, *due, *contextual]:
         if memory.id not in seen:
             seen.add(memory.id)
             merged.append(memory)

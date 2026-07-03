@@ -1,11 +1,11 @@
-# yizhi LLM configuration — EXAMPLE.
+# Will LLM configuration — EXAMPLE.
 #
-# Copy this file to `yizhi.config.toml` (which is git-ignored) and fill in your
-# key + model. With `enabled = false` (or no file at all) yizhi runs the fully
+# Copy this file to `will.config.toml` (which is git-ignored) and fill in your
+# key + model. With `enabled = false` (or no file at all) Will runs the fully
 # deterministic loop and makes no network calls — that is the default.
 #
-#   cp yizhi.config.example.toml yizhi.config.toml
-#   # then edit yizhi.config.toml and set enabled = true + your api_key + model
+#   cp will.config.example.toml will.config.toml
+#   # then edit will.config.toml and set enabled = true + your api_key + model
 #
 # Env vars override this file when set: YIZHI_LLM_ENABLED, OPENAI_API_KEY,
 # YIZHI_LLM_MODEL, YIZHI_LLM_PROVIDER, YIZHI_LLM_BASE_URL.
@@ -13,7 +13,7 @@
 [llm]
 enabled = false              # flip to true to turn the cognition engine on
 provider = "openai"          # "openai" today; "anthropic" is a future drop-in
-api_key = "sk-PASTE-YOUR-GPT-KEY-HERE"
+api_key = ""
 model = "gpt-5"              # set the exact GPT model your key can call
 base_url = ""                # optional: OpenAI-compatible endpoint override; "" = default
 max_output_tokens = 1024     # cap per LLM call

@@ -1,6 +1,6 @@
-# yizhi Source Library
+# Will Source Library
 
-This folder tracks important non-paper sources for yizhi.
+This folder tracks important non-paper sources for Will.
 
 Use `data/papers/manifest.json` for public papers with stable downloadable PDFs.
 Use `data/sources/manifest.json` for books, encyclopedia entries, official docs,

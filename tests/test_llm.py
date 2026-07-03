@@ -337,7 +337,7 @@ def test_config_defaults_disabled_when_file_absent(tmp_path):
 
 def test_config_reads_toml_file(tmp_path, monkeypatch):
     monkeypatch.delenv("YIZHI_LLM_ENABLED", raising=False)  # let the file's value stand
-    path = tmp_path / "yizhi.config.toml"
+    path = tmp_path / "will.config.toml"
     path.write_text('[llm]\nenabled = true\nprovider = "openai"\napi_key = "sk-file"\nmodel = "gpt-file"\n', encoding="utf-8")
     cfg = load_llm_config(path)
     assert cfg.active and cfg.api_key == "sk-file" and cfg.model == "gpt-file"

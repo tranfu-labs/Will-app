@@ -4,9 +4,11 @@ from __future__ import annotations
 
 import sys
 from dataclasses import dataclass, field
+from datetime import datetime, timedelta
 from pathlib import Path
 
 from yizhi.core.ids import new_id
+from yizhi.core.time import utc_now_iso
 from yizhi.core.schemas import (
     ActionRecord,
     ActionStatus,
@@ -14,6 +16,7 @@ from yizhi.core.schemas import (
     EnvironmentName,
     EvalEvent,
     EventType,
+    GoalStatus,
     LoopStatus,
     MemorySource,
     MemoryType,
@@ -22,9 +25,10 @@ from yizhi.core.schemas import (
     PolicyGateResult,
     VerificationResult,
     WillState,
+    WorldObservation,
 )
 from yizhi.engine.drives import update_drives
-from yizhi.engine.findings import extract_finding, is_new_knowledge, probe_subject
+from yizhi.engine.findings import extract_finding, is_new_knowledge, novelty_vs_prior, probe_subject
 from yizhi.engine.goals import decompose_goal, generate_goal
 from yizhi.engine.intention import select_intention
 from yizhi.engine.llm import load_llm
@@ -41,7 +45,7 @@ from yizhi.engine.budget import (
 from yizhi.engine.calibration import brier, predict_value, summarize_calibration
 from yizhi.engine.critique import critique_memory, generate_critique
 from yizhi.engine.hypothesis import author_backtest
-from yizhi.engine.judgment import CONCLUSIVE, judge_backtest, judgment_finding
+from yizhi.engine.judgment import CONCLUSIVE, Verdict, judge_backtest, judgment_finding
 from yizhi.engine.memory import (
     CONSOLIDATE_EVERY,
     build_memory_store,
@@ -65,8 +69,15 @@ from yizhi.state.store import append_event, create_snapshot, list_events
 # After this many no-progress loops, an in-flight plan is re-decomposed (Magentic-One
 # stall budget), driven by deterministic outcome signals — see the advance/replan block.
 STALL_BUDGET = 3
+# After this many replans on the same goal that still stall, the goal is judged ABANDONED —
+# Will stops pouring loops into a dead goal and genesis may pick the next one.
+MAX_PLAN_REVISIONS = 2
 # Cap on the WillState audit list of created-memory ids, so snapshots stay bounded.
 MEMORY_IDS_CAP = 200
+# How far out an ITERATE verdict schedules its re-test. The "later" of "tune/widen later" is real
+# time (more funding data must accrue first), so a fast smoke loop won't fire it; a long unattended
+# run will, once the trigger time passes. Tunable.
+PROSPECTIVE_RETEST_HOURS = 6.0
 
 
 @dataclass
@@ -136,13 +147,18 @@ def _llm_fallback_sink(db_path: str | Path, loop_id: str, event_ids: list[str], 
     return sink
 
 
-def run_step(env: ActionEnvironment, state: WillState, db_path: str | Path) -> LoopRunResult:
+def run_step(
+    env: ActionEnvironment,
+    state: WillState,
+    db_path: str | Path,
+    extra_observations: list[WorldObservation] | None = None,
+) -> LoopRunResult:
     loop_id = new_id("loop")
     event_ids: list[str] = []
     environment = EnvironmentName(env.name)
 
     # The optional LLM cognition engine — None (deterministic) unless opt-in via
-    # yizhi.config.toml. Loaded once per step; no network/import unless it is used.
+    # will.config.toml. Loaded once per step; no network/import unless it is used.
     llm = load_llm()
 
     # The will-governed memory economy over the durable store; every memory
@@ -156,6 +172,10 @@ def run_step(env: ActionEnvironment, state: WillState, db_path: str | Path) -> L
     )
 
     observations = env.observe()
+    if extra_observations:
+        # Human channel input rides the same observe stage as environment facts, so
+        # recall/thought/drives/memory digest it — R2's "inbound as observation source".
+        observations = list(observations) + list(extra_observations)
     obs_event_ids: dict[str, str] = {}
     for obs in observations:
         obs_event_ids[obs.id] = _append(
@@ -172,7 +192,13 @@ def run_step(env: ActionEnvironment, state: WillState, db_path: str | Path) -> L
     recall_query = " ".join(obs.summary for obs in observations)
     contextual = memory_store.recall(recall_query, state, k=3) if recall_query else []
     standing = memory_store.recall_standing(k=2)
-    recalled = merge_recall(standing, contextual)
+    # Prospective: a deferred intention whose time-trigger has arrived re-enters working memory
+    # now — so a "re-test this later" set on an earlier loop actually resurfaces. It fires ONCE
+    # (consumed just below), so a past-due cue does not re-surface every loop. See sec 8.2.
+    due = memory_store.due_prospective()
+    recalled = merge_recall(standing, contextual, due)
+    if due:
+        memory_store.fire_prospective(due)
 
     thoughts = generate_thoughts(
         observations, state, memories=recalled,
@@ -217,7 +243,8 @@ def run_step(env: ActionEnvironment, state: WillState, db_path: str | Path) -> L
             memory_type=MemoryType.EPISODIC,
             kind=obs.source,
             will_state=state,
-            signals=derive_signals(obs.summary, state, drive_relevance=drive_rel, stake_relevance=stake),
+            signals=derive_signals(obs.summary, state, drive_relevance=drive_rel, stake_relevance=stake,
+                                   novelty=state.last_surprise),
             source_event_ids=[obs_event_ids[obs.id]],
             subject=obs.source,
         )
@@ -228,7 +255,7 @@ def run_step(env: ActionEnvironment, state: WillState, db_path: str | Path) -> L
     state.budget = spend(state.budget, COGNITION_COST)
     _append(db_path, EventType.BUDGET_SPENT, "budget", state.id, state.budget, loop_id, event_ids=event_ids)
 
-    intention = select_intention(thoughts, drives, state)
+    intention = select_intention(thoughts, drives, state, recalled=recalled)
     _append(
         db_path,
         EventType.INTENTION_PROPOSED,
@@ -279,6 +306,7 @@ def run_step(env: ActionEnvironment, state: WillState, db_path: str | Path) -> L
         llm=llm, thoughts=thoughts, intention=intention, recalled=recalled,
         goal=goal_text, budget_balance=state.budget.balance, budget_pressure=budget_pressure(state.budget),
         active_step=active_step,
+        endorsed_drive=intention.endorsed_drive,
         on_fallback=_llm_fallback_sink(db_path, loop_id, event_ids, "proposal"),
     )
     _append(
@@ -291,7 +319,7 @@ def run_step(env: ActionEnvironment, state: WillState, db_path: str | Path) -> L
         event_ids=event_ids,
     )
 
-    policy = run_policy_gate(proposal)
+    policy = run_policy_gate(proposal, state=state)
     policy_type = EventType.POLICY_GATE_PASSED if policy.allowed else EventType.POLICY_GATE_DENIED
     _append(db_path, policy_type, "policy_gate", policy.id, policy, loop_id, event_ids=event_ids)
 
@@ -398,8 +426,9 @@ def run_step(env: ActionEnvironment, state: WillState, db_path: str | Path) -> L
 
     # Edge-knowledge: judge the backtest deterministically (or LLM-extract a non-backtest
     # finding), record it in the subject-keyed experiment ledger, and replenish the budget
-    # only on CONCLUSIVE new knowledge. Returns whether genuinely new knowledge was produced.
-    produced_new = _judge_and_record_finding(
+    # only on CONCLUSIVE new knowledge. Returns verified_value — structurally-settled new
+    # knowledge — the single value signal shared by replenishment, calibration, and plan progress.
+    verified_value = _judge_and_record_finding(
         action_record, proposal, verification, llm, memory_store, state,
         drive_rel, db_path, loop_id, event_ids,
     )
@@ -409,7 +438,7 @@ def run_step(env: ActionEnvironment, state: WillState, db_path: str | Path) -> L
     # LLM grading itself. The running track record is kept as standing CALIBRATION
     # memory so the agent sees how reliable its own forecasts are.
     if prediction_confidence is not None:
-        outcome = 1.0 if produced_new else 0.0
+        outcome = 1.0 if verified_value else 0.0
         _append(
             db_path, EventType.CALIBRATION_SCORED, "calibration", loop_id,
             {"confidence": prediction_confidence, "outcome": outcome, "brier": brier(prediction_confidence, outcome)},
@@ -460,7 +489,7 @@ def run_step(env: ActionEnvironment, state: WillState, db_path: str | Path) -> L
     # A step counts as done only on a verified loop that produced new knowledge — less
     # than that marks it failed and raises the stall counter. Deterministic: no LLM
     # here, and with no active plan (the default / LLM-off) this whole block is a no-op.
-    made_progress = preliminary_status in (LoopStatus.FULL, LoopStatus.PARTIAL) and produced_new
+    made_progress = preliminary_status in (LoopStatus.FULL, LoopStatus.PARTIAL) and verified_value
     plan = state.active_plan
     if plan is not None and plan.status == PlanStatus.ACTIVE and 0 <= plan.cursor < len(plan.steps):
         step = plan.steps[plan.cursor]
@@ -484,7 +513,7 @@ def run_step(env: ActionEnvironment, state: WillState, db_path: str | Path) -> L
     # state + the event log (plus the critique's standing note). No-op when LLM/vision off.
     _deliberate_next_goal(
         llm, state, memory_store, arbbot_proposals, recalled,
-        preliminary_status, db_path, loop_id, event_ids,
+        preliminary_status, made_progress, db_path, loop_id, event_ids,
     )
 
     # Cap the audit list of created-memory ids so WillState (and thus every snapshot)
@@ -557,10 +586,12 @@ def _judge_and_record_finding(action_record, proposal, verification, llm, memory
     fixed rules) IS the finding — the verdict, not an LLM's reading of stdout, enters the ledger,
     so a single lucky window (n_entered=1) is never recorded as an edge. Other experiment probes
     keep the LLM extraction; routine checks (git status) produce no finding. Re-running a probe
-    supersedes its prior finding. Returns whether genuinely new knowledge was produced (drives
-    the calibration outcome). The stake closes only on PROMOTE/KILL (or a novel non-backtest
-    finding) — INSUFFICIENT/ITERATE is not yet knowledge and must not pay, or the economy would
-    reward noise."""
+    supersedes its prior finding. Returns verified_value — whether this was structurally-settled
+    new knowledge: a judge_backtest CONCLUSIVE verdict (PROMOTE/KILL) on a first-time finding.
+    That ONE signal gates replenishment AND the calibration outcome AND plan progress alike. A
+    non-backtest LLM-extracted finding (judgment is None) updates the ledger but is not value —
+    INSUFFICIENT/ITERATE is not yet knowledge, and paying for a mere rephrasing of the same
+    output would let the economy reward noise and fake plan progress."""
     judgment = judge_backtest(action_record.metrics) if action_record else None
     if judgment is not None:
         _append(
@@ -587,6 +618,7 @@ def _judge_and_record_finding(action_record, proposal, verification, llm, memory
         ),
         None,
     )
+    surprise = novelty_vs_prior(prior, finding)
     finding_memory = memory_store.remember(
         finding,
         memory_type=MemoryType.SEMANTIC,
@@ -595,19 +627,45 @@ def _judge_and_record_finding(action_record, proposal, verification, llm, memory
         grounding=[" ".join(action_record.command)] if action_record else [],
         source=MemorySource.INFERRED,
         will_state=state,
-        signals=derive_signals(finding, state, drive_relevance=drive_rel),
+        signals=derive_signals(finding, state, drive_relevance=drive_rel, novelty=surprise),
     )
     state.memory_ids.append(finding_memory.id)
-    conclusive = judgment is None or judgment.verdict in CONCLUSIVE
-    produced_new = is_new_knowledge(prior, finding) and conclusive
-    if produced_new:
+    # Carry the surprise forward: a finding that departed from the prior belief about its subject
+    # raises how strongly the NEXT loop encodes what it observes. novelty on this SEMANTIC finding
+    # is largely held at the type floor; the carryover lands on the next observation (EPISODIC,
+    # floor 0) where it actually moves salience (arousal enhances encoding — McGaugh).
+    state.last_surprise = surprise
+    # A weak-but-positive ITERATE verdict is a deferred intention, not yet knowledge: set a
+    # time-triggered prospective to re-test this subject later (once more data has accrued), so
+    # "tune the threshold / widen the sample" actually resurfaces instead of being said and dropped.
+    if judgment is not None and judgment.verdict == Verdict.ITERATE and subject:
+        retest_at = datetime.fromisoformat(utc_now_iso()) + timedelta(hours=PROSPECTIVE_RETEST_HOURS)
+        prospective = memory_store.remember(
+            f"re-test {subject}: widen the sample or tune the threshold (was ITERATE)",
+            memory_type=MemoryType.PROSPECTIVE,
+            kind="arbbot:retest",
+            subject=subject,
+            trigger=f"time:{retest_at.isoformat()}",
+            source=MemorySource.INFERRED,
+            will_state=state,
+        )
+        state.memory_ids.append(prospective.id)
+    # `verified_value` (structured CONCLUSIVE new knowledge) is the value signal that gates
+    # replenishment, calibration outcome, and plan progress alike; `cognitively_new` (textual
+    # novelty) is only its precondition. A non-backtest LLM-extracted finding (judgment is None)
+    # updates the ledger but is not value — it cannot farm the knowledge bonus or fake progress.
+    cognitively_new = is_new_knowledge(prior, finding)
+    verified_value = (
+        judgment is not None and judgment.verdict in CONCLUSIVE and cognitively_new
+    )
+    if verified_value:
         state.budget = replenish(state.budget, KNOWLEDGE_REPLENISH)
         _append(db_path, EventType.BUDGET_REPLENISHED, "budget", state.id, state.budget, loop_id, event_ids=event_ids)
-    return produced_new
+    return verified_value
 
 
 def _deliberate_next_goal(llm, state, memory_store, arbbot_proposals, recalled,
-                          preliminary_status, db_path, loop_id, event_ids) -> None:
+                          preliminary_status, made_progress, db_path, loop_id, event_ids) -> None:
     """The loop's deliberation tail: yizhi sets its OWN next goal from the experiment ledger
     + frontier, (de)composes it into a multi-loop plan (a new goal supersedes an in-flight
     plan; a stalled plan is re-decomposed), and raises a critique of any 'no edge' result that
@@ -617,42 +675,66 @@ def _deliberate_next_goal(llm, state, memory_store, arbbot_proposals, recalled,
     if llm is None or not state.vision:
         return
     ledger, frontier = _build_frontier(memory_store, arbbot_proposals)
-    new_goal = generate_goal(
-        llm, state.vision, state.goals[0] if state.goals else None, ledger,
-        state.budget.balance, budget_pressure(state.budget),
-        frontier=frontier, recalled=recalled,
-        on_fallback=_llm_fallback_sink(db_path, loop_id, event_ids, "goal"),
-    )
-    if new_goal is not None:
-        state.goals = [new_goal]
-        _append(db_path, EventType.GOAL_SET, "goal", new_goal.id, new_goal, loop_id, event_ids=event_ids)
-        fresh = decompose_goal(
-            llm, new_goal, arbbot_proposals, frontier,
+
+    # Goal lifecycle (deterministic): retire the current goal BEFORE deciding whether to set a new
+    # one, so a goal is pursued to completion instead of overwritten every loop. Its plan running
+    # to COMPLETED is DONE; a plan that keeps stalling past MAX_PLAN_REVISIONS is ABANDONED; a
+    # single-step goal (no plan) that produced verified value this loop is DONE.
+    cur = state.goals[0] if state.goals else None
+    plan = state.active_plan
+    if cur is not None and cur.status == GoalStatus.PURSUING:
+        same_plan = plan is not None and plan.goal_id == cur.id
+        if same_plan and plan.status == PlanStatus.COMPLETED:
+            cur.status = GoalStatus.DONE
+        elif same_plan and plan.status == PlanStatus.ACTIVE and plan.stall_count >= STALL_BUDGET and plan.revision >= MAX_PLAN_REVISIONS:
+            cur.status = GoalStatus.ABANDONED
+        elif plan is None and made_progress:
+            cur.status = GoalStatus.DONE
+        if cur.status != GoalStatus.PURSUING:
+            _append(db_path, EventType.GOAL_RETIRED, "goal", cur.id,
+                    {"goal_id": cur.id, "status": cur.status.value}, loop_id, event_ids=event_ids)
+
+    # Genesis is conditional: set a new goal ONLY when there is none or the current one was just
+    # retired. While the current goal is PURSUING, keep it and let its Plan run across loops — this
+    # single branch is what makes "persistently advance one task" possible (it was an unconditional
+    # overwrite, which stale-killed every in-flight plan via the goal_id check in run_step).
+    needs_new_goal = cur is None or cur.status != GoalStatus.PURSUING
+    if needs_new_goal:
+        new_goal = generate_goal(
+            llm, state.vision, cur, ledger,
             state.budget.balance, budget_pressure(state.budget),
-            max_steps=_plan_depth(state.budget), recalled=recalled,
-            on_fallback=_llm_fallback_sink(db_path, loop_id, event_ids, "decompose"),
+            frontier=frontier, recalled=recalled,
+            on_fallback=_llm_fallback_sink(db_path, loop_id, event_ids, "goal"),
         )
-        state.active_plan = fresh   # None => single-step (unchanged behavior)
-        if fresh is not None:
-            _append(db_path, EventType.PLAN_CREATED, "plan", fresh.id, fresh, loop_id, event_ids=event_ids)
-    else:
-        # goal kept; re-decompose only if the in-flight plan has stalled out
-        plan = state.active_plan
-        if plan is not None and plan.status == PlanStatus.ACTIVE and plan.stall_count >= STALL_BUDGET:
-            replan = decompose_goal(
-                llm, state.goals[0] if state.goals else None, arbbot_proposals, frontier,
+        if new_goal is not None:
+            state.goals = [new_goal]
+            _append(db_path, EventType.GOAL_SET, "goal", new_goal.id, new_goal, loop_id, event_ids=event_ids)
+            fresh = decompose_goal(
+                llm, new_goal, arbbot_proposals, frontier,
                 state.budget.balance, budget_pressure(state.budget),
-                max_steps=_plan_depth(state.budget),
-                failure_context=f"stalled {plan.stall_count} loops; last status {getattr(preliminary_status, 'value', preliminary_status)}",
-                recalled=recalled,
-                on_fallback=_llm_fallback_sink(db_path, loop_id, event_ids, "replan"),
+                max_steps=_plan_depth(state.budget), recalled=recalled,
+                on_fallback=_llm_fallback_sink(db_path, loop_id, event_ids, "decompose"),
             )
-            if replan is not None:
-                replan.revision = plan.revision + 1
-                state.active_plan = replan
-                _append(db_path, EventType.PLAN_REPLANNED, "plan", replan.id, replan, loop_id, event_ids=event_ids)
-            else:
-                state.active_plan = None
+            state.active_plan = fresh   # None => single-step (unchanged behavior)
+            if fresh is not None:
+                _append(db_path, EventType.PLAN_CREATED, "plan", fresh.id, fresh, loop_id, event_ids=event_ids)
+        # new_goal None while needing one: leave the slot retired; next loop retries genesis.
+    elif plan is not None and plan.status == PlanStatus.ACTIVE and plan.stall_count >= STALL_BUDGET:
+        # current goal still PURSUING but its plan stalled out: re-decompose (never overwrite the goal)
+        replan = decompose_goal(
+            llm, cur, arbbot_proposals, frontier,
+            state.budget.balance, budget_pressure(state.budget),
+            max_steps=_plan_depth(state.budget),
+            failure_context=f"stalled {plan.stall_count} loops; last status {getattr(preliminary_status, 'value', preliminary_status)}",
+            recalled=recalled,
+            on_fallback=_llm_fallback_sink(db_path, loop_id, event_ids, "replan"),
+        )
+        if replan is not None:
+            replan.revision = plan.revision + 1
+            state.active_plan = replan
+            _append(db_path, EventType.PLAN_REPLANNED, "plan", replan.id, replan, loop_id, event_ids=event_ids)
+        else:
+            state.active_plan = None
 
     # Critique faculty: question a 'no edge' result that may be a FALSE NEGATIVE and leave a
     # high-salience standing self-note to RE-TEST it (a filtered backtest). yizhi does NOT

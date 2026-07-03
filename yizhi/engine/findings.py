@@ -79,3 +79,14 @@ def is_new_knowledge(prior_content: str | None, content: str) -> bool:
     if not prior_content:
         return True
     return overlap(content, [prior_content]) < NOVELTY_THRESHOLD
+
+
+def novelty_vs_prior(prior_content: str | None, content: str) -> float:
+    """World-model prediction error as a salience signal, in [0, 1]: how far this finding departs
+    from the prior belief about the SAME subject (the ledger entry — yizhi's standing model of that
+    subject). No prior is fully novel (1.0); a re-confirmation that overlaps the prior is low; a
+    finding that diverges (e.g. a flipped verdict) is high. The continuous companion to
+    is_new_knowledge's threshold gate, on the same overlap metric."""
+    if not prior_content:
+        return 1.0
+    return max(0.0, 1.0 - overlap(content, [prior_content]))

@@ -27,7 +27,19 @@ def _noop(env_name: EnvironmentName | str) -> ActionProposal:
     )
 
 
-def _deterministic_choose(proposals: list[ActionProposal]) -> ActionProposal:
+# Drives whose endorsement steers the will toward an evidence-producing probe (vs upkeep).
+# This is where second-order endorsement enters the action causal chain: the endorsed motive
+# changes WHICH action is taken, so the deterministic will is not wanton.
+_DRIVE_FAVORS_EXPERIMENT = {"curiosity_gap", "commitment_pressure"}
+
+
+def _deterministic_choose(proposals: list[ActionProposal], endorsed_drive: str | None = None) -> ActionProposal:
+    if endorsed_drive in _DRIVE_FAVORS_EXPERIMENT:
+        # An endorsed exploratory motive takes a paper-safe probe; cheapest (INTERNAL) first.
+        experiments = [p for p in proposals if p.experiment and p.dry_run]
+        if experiments:
+            internal_exp = [p for p in experiments if p.action_class == ActionClass.INTERNAL]
+            return (internal_exp or experiments)[0]
     safe_internal = [p for p in proposals if p.action_class == ActionClass.INTERNAL and p.dry_run]
     if safe_internal:
         return safe_internal[0]
@@ -115,6 +127,7 @@ def choose_proposal(
     budget_balance: float = 0.0,
     budget_pressure: float = 0.0,
     active_step: PlanStep | None = None,
+    endorsed_drive: str | None = None,
     on_fallback=None,
 ) -> ActionProposal:
     if not proposals:
@@ -129,4 +142,4 @@ def choose_proposal(
     matched = _match_step(proposals, active_step)   # honor a grounded plan step deterministically
     if matched is not None:
         return matched
-    return _deterministic_choose(proposals)
+    return _deterministic_choose(proposals, endorsed_drive)

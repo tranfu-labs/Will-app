@@ -4,19 +4,25 @@ data/papers/pdfs/
 data/papers/papers.sqlite
 data/papers/*.sqlite
 data/papers/*.sqlite-*
+data/campaigns/
 
 # Python cache
 __pycache__/
 *.py[cod]
 .pytest_cache/
+*.egg-info/
 
 # Local environment and secrets
 .env
 .env.*
 !.env.example
 yizhi.config.toml
+will.config.toml
 
 # OS/editor noise
 .DS_Store
 .idea/
 .vscode/
+
+# Local dev-tool launch config (points at /tmp smoke paths)
+.claude/launch.json

@@ -33,7 +33,7 @@ def assert_round_trip(model):
 
 def test_default_identity_contract():
     state = WillState()
-    assert state.identity.name == "yizhi"
+    assert state.identity.name == "Will"
     assert state.identity.role == "local governed will agent"
     assert "no live trading" in state.identity.non_goals
     assert "no credentials" in state.identity.non_goals

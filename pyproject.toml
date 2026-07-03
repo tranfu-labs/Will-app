@@ -3,7 +3,7 @@ requires = ["setuptools>=68"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "yizhi"
+name = "will"
 version = "0.1.0"
 description = "Local governed Will Agent v0"
 readme = "README.md"
@@ -25,9 +25,21 @@ litellm = [
 embedding = [
   "fastembed>=0.3",
 ]
+web = [
+  "fastapi>=0.110",
+  "uvicorn>=0.27",
+  "jinja2>=3.1",
+]
 
 [project.scripts]
+will = "yizhi.cli:main"
 yizhi = "yizhi.cli:main"
+
+[tool.setuptools.package-data]
+"yizhi.web" = ["templates/*.html", "static/*"]
+
+[tool.setuptools.packages.find]
+include = ["yizhi*"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

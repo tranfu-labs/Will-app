@@ -1,16 +1,27 @@
-"""Command line interface for yizhi Will Agent v0."""
+"""Command line interface for Will Agent v0."""
 
 from __future__ import annotations
 
 import argparse
 import json
+from dataclasses import replace
 from typing import Any
 
+from yizhi.campaigns.btc import build_btc_campaign
+from yizhi.campaigns.engine import campaign_tick, revisit_stage
+from yizhi.campaigns.store import load_campaign, save_campaign_started
+from yizhi.channels.notify import event_to_message, make_channel
+from yizhi.config import load_channel_config, load_delegation_config
 from yizhi.core.ids import new_id
-from yizhi.core.schemas import EventType, WillState
+from yizhi.core.schemas import DelegationKind, DelegationTask, EventType, WillState
+from yizhi.engine.delegation import CliHarnessDelegationClient, build_delegation_proposal, execute_delegation
 from yizhi.engine.loop import environment_from_name, run_step
 from yizhi.engine.runner import run_until
 from yizhi.eval.loops import list_loop_evals
+from yizhi.fundarb.dataset import build_coverage_report, ingest_cache, write_coverage_report
+from yizhi.fundarb.execution import execute_experiment_queue
+from yizhi.fundarb.experiments import build_and_write_queue
+from yizhi.fundarb.packets import build_and_write_packet
 from yizhi.state.snapshots import load_or_create_state
 from yizhi.state.store import DEFAULT_DB_PATH, append_event, init_db, list_events, load_latest_snapshot
 
@@ -80,7 +91,7 @@ def cmd_step(args: argparse.Namespace) -> int:
 
 
 def _make_vps_fetch_hook(escalate: bool = True) -> "Any":
-    """A6 frontier-widening hook for `yizhi run --fetch-on-exhaust`. On exhaustion the
+    """A6 frontier-widening hook for `will run --fetch-on-exhaust`. On exhaustion the
     runner calls this OFF-LOOP (run_step never SSHes): it invokes the VPS fetch script,
     escalating depth/breadth each call, and returns True iff the funding cache actually
     changed — so a barren fetch reports no new data and the run halts cleanly. Opt-in;
@@ -131,6 +142,11 @@ def cmd_run(args: argparse.Namespace) -> int:
         print(f"step {n:>3}: status={result.loop_status} action={result.proposal_id} budget={st.budget.balance:.1f}")
 
     fetch_hook = _make_vps_fetch_hook() if getattr(args, "fetch_on_exhaust", False) else None
+    channel = None
+    if getattr(args, "channel_root", None):
+        # Opt-in dialogue seam: drain this inbox each step (words → observations,
+        # vision/kill-goal → governed state changes, asks → answers to the outbox).
+        channel = make_channel(replace(load_channel_config(), root=args.channel_root))
     outcome = run_until(
         env,
         state,
@@ -140,6 +156,7 @@ def cmd_run(args: argparse.Namespace) -> int:
         sleep=args.sleep,
         on_step=on_step,
         fetch_hook=fetch_hook,
+        channel=channel,
     )
     _print_kv(
         {
@@ -182,6 +199,87 @@ def cmd_state(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_delegate(args: argparse.Namespace) -> int:
+    """Run one governed read-only delegation through gate → budget → run → verify.
+
+    Manual entry point (R0; docs/resident-operator-plan.md). The harness is OFF unless
+    DelegationConfig is enabled, so by default this exercises the full governance closure
+    and reports "delegation disabled" instead of starting a subprocess. Budget pressure is
+    read from current state but not persisted — a one-shot diagnostic; the semantic events
+    are the audit trail."""
+    db_path = init_db(args.db)
+    state = load_or_create_state(db_path)
+    config = load_delegation_config()
+    tools = [t.strip() for t in args.allowed_tools.split(",") if t.strip()] or list(config.default_allowed_tools)
+    task = DelegationTask(kind=DelegationKind(args.kind), instruction=args.instruction, cwd=args.cwd, allowed_tools=tools)
+    outcome = execute_delegation(build_delegation_proposal(task), CliHarnessDelegationClient(config), state.budget, db_path)
+    _print_kv(
+        {
+            "kind": task.kind,
+            "harness": config.harness if config.active else "disabled",
+            "policy decision": outcome.gate.decision,
+            "policy reasons": outcome.gate.reasons or ["(allowed)"],
+            "action status": outcome.record.status if outcome.record else "none",
+            "verification passed": outcome.verification.passed if outcome.verification else "n/a",
+            "budget after": f"{outcome.budget.balance:.1f}",
+            "summary": outcome.report.summary if outcome.report else "(not run)",
+        }
+    )
+    return 0
+
+
+def cmd_report(args: argparse.Namespace) -> int:
+    """Report reportable events to the configured channel and drain inbound commands.
+
+    Manual entry to the R2 interaction layer (docs/resident-operator-plan.md). Defaults to
+    the offline file-backed local_inbox; Telegram is opt-in via config. Reporting is
+    infrastructure-level — it records nothing on the will budget."""
+    db_path = init_db(args.db)
+    config = load_channel_config()
+    if args.channel_root:
+        config = replace(config, root=args.channel_root)
+    channel = make_channel(config)
+    events = list_events(path=db_path, limit=args.limit, newest_first=True)
+    sent = 0
+    for event in reversed(events):
+        message = event_to_message(event)
+        if message is not None:
+            channel.send(message)
+            sent += 1
+    inbound = channel.poll()
+    _print_kv(
+        {
+            "channel": channel.name,
+            "reported": sent,
+            "inbound": [f"{c.verb}:{c.arg}" for c in inbound] or ["(none)"],
+        }
+    )
+    return 0
+
+
+def cmd_serve_web(args: argparse.Namespace) -> int:
+    """Serve the read-only web panel (progress, task history, approvals).
+
+    The panel opens the store read-only and never starts runs; its one write is
+    appending approval verbs to the channel inbox for the will loop to poll. It
+    binds localhost by default — reaching it from elsewhere should go through an
+    SSH tunnel rather than a public bind. Requires the [web] extra."""
+    try:
+        import uvicorn
+
+        from yizhi.web.app import create_app
+    except ImportError:
+        print('web extras missing — install with: python3 -m pip install -e ".[web]"')
+        return 1
+    config = load_channel_config()
+    if args.channel_root:
+        config = replace(config, root=args.channel_root)
+    app = create_app(db_path=args.db, channel_root=config.root, packet_path=args.packet)
+    _print_kv({"panel": f"http://{args.host}:{args.port}", "db": args.db, "channel root": config.root})
+    uvicorn.run(app, host=args.host, port=args.port, log_level="warning")
+    return 0
+
+
 def cmd_eval_loops(args: argparse.Namespace) -> int:
     db_path = init_db(args.db)
     evals = list_loop_evals(db_path, limit=args.limit)
@@ -190,8 +288,166 @@ def cmd_eval_loops(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_funding_dataset(args: argparse.Namespace) -> int:
+    result = ingest_cache(args.cache, args.ledger)
+    report = build_coverage_report(args.ledger, min_periods=args.min_periods)
+    write_coverage_report(report, args.coverage)
+    queue_result = build_and_write_queue(args.coverage, args.queue) if args.with_queue else None
+    _print_kv(
+        {
+            "source_snapshot_id": result.source_snapshot_id,
+            "symbols": result.symbols_seen,
+            "records seen": result.records_seen,
+            "records added": result.records_added,
+            "records existing": result.records_existing,
+            "backtest ready": f"{report['backtest_ready_symbols']}/{report['symbols']}",
+            "ledger": result.ledger_path,
+            "coverage": args.coverage,
+            "queue": queue_result.queue_path if queue_result else "not_run",
+            "experiments": queue_result.experiments if queue_result else "not_run",
+        }
+    )
+    return 0
+
+
+def cmd_funding_queue(args: argparse.Namespace) -> int:
+    result = build_and_write_queue(
+        args.coverage,
+        args.queue,
+        min_overlap=args.min_overlap,
+        max_symbols=args.max_symbols,
+    )
+    _print_kv(
+        {
+            "symbols": result.symbols,
+            "experiments": result.experiments,
+            "coverage": result.source_coverage_path,
+            "queue": result.queue_path,
+        }
+    )
+    return 0
+
+
+def cmd_funding_run_queue(args: argparse.Namespace) -> int:
+    result = execute_experiment_queue(
+        args.queue,
+        args.results,
+        arbbot_root=args.arbbot_root,
+        funding_cache=args.funding_cache,
+        max_experiments=args.max_experiments,
+        only_missing=not args.rerun_existing,
+    )
+    _print_kv(
+        {
+            "seen": result.seen,
+            "executed": result.executed,
+            "skipped": result.skipped,
+            "denied": result.denied,
+            "failed": result.failed,
+            "judged": result.judged,
+            "promote": result.promote,
+            "kill": result.kill,
+            "iterate": result.iterate,
+            "insufficient": result.insufficient,
+            "results": result.results_path,
+        }
+    )
+    return 0
+
+
+def cmd_funding_packet(args: argparse.Namespace) -> int:
+    result = build_and_write_packet(args.results, args.packet)
+    _print_kv(
+        {
+            "results": result.results,
+            "symbols": result.symbols,
+            "decisions": result.decisions,
+            "packet_id": result.packet_id,
+            "packet": result.packet_path,
+        }
+    )
+    return 0
+
+
+def cmd_campaign_create_btc(args: argparse.Namespace) -> int:
+    db_path = init_db(args.db)
+    campaign = build_btc_campaign(campaign_id=args.id, workspace_root=args.workspace_root)
+    save_campaign_started(db_path, campaign)
+    _print_kv(
+        {
+            "campaign_id": campaign.id,
+            "title": campaign.title,
+            "status": campaign.status,
+            "cursor": campaign.cursor,
+            "stages": [f"{s.id}: {s.title}" for s in campaign.stages],
+            "workspace": campaign.workspace_root,
+        }
+    )
+    return 0
+
+
+def cmd_campaign_run(args: argparse.Namespace) -> int:
+    db_path = init_db(args.db)
+    campaign = load_campaign(db_path, args.id)
+    if campaign is None:
+        print(f"campaign not found: {args.id}")
+        return 1
+    last = None
+    for _ in range(args.max_ticks):
+        last = campaign_tick(db_path, campaign, worker=args.worker)
+        campaign = last.campaign
+        if last.status in {"completed", "paused", "not_active", "task_denied", "deliverable_rejected"}:
+            break
+    _print_kv(
+        {
+            "campaign_id": campaign.id,
+            "status": campaign.status,
+            "cursor": campaign.cursor,
+            "last_tick": last.status if last else "not_run",
+            "stage_id": last.stage_id if last else "n/a",
+            "task_run_id": last.task_run_id if last else "n/a",
+            "deliverable_id": last.deliverable_id if last else "n/a",
+            "message": last.message if last else "",
+        }
+    )
+    return 0
+
+
+def cmd_campaign_state(args: argparse.Namespace) -> int:
+    db_path = init_db(args.db)
+    campaign = load_campaign(db_path, args.id)
+    if campaign is None:
+        print(f"campaign not found: {args.id}")
+        return 1
+    print(campaign.model_dump_json(indent=2))
+    return 0
+
+
+def cmd_campaign_revisit(args: argparse.Namespace) -> int:
+    db_path = init_db(args.db)
+    campaign = load_campaign(db_path, args.id)
+    if campaign is None:
+        print(f"campaign not found: {args.id}")
+        return 1
+    try:
+        campaign = revisit_stage(db_path, campaign, stage_id=args.stage, note=args.note)
+    except ValueError as exc:
+        print(str(exc))
+        return 1
+    _print_kv(
+        {
+            "campaign_id": campaign.id,
+            "status": campaign.status,
+            "cursor": campaign.cursor,
+            "stage": args.stage,
+            "note": args.note,
+        }
+    )
+    return 0
+
+
 def build_parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(prog="yizhi", description="Local governed Will Agent v0")
+    parser = argparse.ArgumentParser(prog="will", description="Local governed Will Agent v0")
     parser.add_argument("--db", default=str(DEFAULT_DB_PATH), help="SQLite event store path")
     subparsers = parser.add_subparsers(dest="command", required=True)
 
@@ -216,6 +472,11 @@ def build_parser() -> argparse.ArgumentParser:
     run_parser.add_argument("--sleep", type=float, default=0.0, help="Seconds to pause between steps (rate politeness)")
     run_parser.add_argument("--no-stuck-stop", action="store_true", help="Disable semantic stuck-detection halt")
     run_parser.add_argument(
+        "--channel-root",
+        default=None,
+        help="Enable the dialogue seam: drain this channel inbox each step (web chat / IM commands)",
+    )
+    run_parser.add_argument(
         "--fetch-on-exhaust",
         action="store_true",
         help="On frontier exhaustion, fetch deeper/broader funding data via the VPS and continue "
@@ -230,11 +491,96 @@ def build_parser() -> argparse.ArgumentParser:
     state_parser = subparsers.add_parser("state", help="Print latest WillState snapshot")
     state_parser.set_defaults(func=cmd_state)
 
+    delegate_parser = subparsers.add_parser(
+        "delegate", help="Run one governed read-only delegation to a coding harness (R0)"
+    )
+    delegate_parser.add_argument(
+        "--kind", choices=[k.value for k in DelegationKind], default=DelegationKind.ANALYZE_REPO.value
+    )
+    delegate_parser.add_argument("--instruction", required=True, help="Read-only brief for the harness")
+    delegate_parser.add_argument("--cwd", required=True, help="Restricted in-repo relative path the harness may read")
+    delegate_parser.add_argument("--allowed-tools", default="", help="Comma-separated read-only tools; default from config")
+    delegate_parser.set_defaults(func=cmd_delegate)
+
+    report_parser = subparsers.add_parser(
+        "report", help="Report reportable events to the configured channel and drain inbound commands (R2)"
+    )
+    report_parser.add_argument("--limit", type=int, default=20, help="How many recent events to scan")
+    report_parser.add_argument("--channel-root", default="", help="Override the local_inbox directory")
+    report_parser.set_defaults(func=cmd_report)
+
+    serve_web_parser = subparsers.add_parser(
+        "serve-web", help="Serve the read-only web panel (progress, task history, approvals)"
+    )
+    serve_web_parser.add_argument("--host", default="127.0.0.1", help="Bind address (keep localhost; tunnel for remote)")
+    serve_web_parser.add_argument("--port", type=int, default=8321)
+    serve_web_parser.add_argument("--channel-root", default=None, help="Override channel root for approval inbox writes")
+    serve_web_parser.add_argument(
+        "--packet", default="data/funding/promotion_packet.json", help="Promotion packet path for the deliverables page"
+    )
+    serve_web_parser.set_defaults(func=cmd_serve_web)
+
     eval_parser = subparsers.add_parser("eval", help="Evaluation commands")
     eval_subparsers = eval_parser.add_subparsers(dest="eval_command", required=True)
     loops_parser = eval_subparsers.add_parser("loops", help="Print loop eval events")
     loops_parser.add_argument("--limit", type=int, default=20)
     loops_parser.set_defaults(func=cmd_eval_loops)
+
+    funding_parser = subparsers.add_parser("funding", help="FundArb data commands")
+    funding_subparsers = funding_parser.add_subparsers(dest="funding_command", required=True)
+    dataset_parser = funding_subparsers.add_parser("dataset", help="Build append-only funding ledger and coverage report")
+    dataset_parser.add_argument("--cache", default="data/funding_cache.json", help="Input funding cache JSON")
+    dataset_parser.add_argument("--ledger", default="data/funding/ledger.jsonl", help="Append-only output ledger JSONL")
+    dataset_parser.add_argument("--coverage", default="data/funding/coverage.json", help="Coverage report JSON")
+    dataset_parser.add_argument("--queue", default="data/funding/experiment_queue.json", help="Output experiment queue JSON")
+    dataset_parser.add_argument("--min-periods", type=int, default=20, help="Minimum overlapping periods for readiness")
+    dataset_parser.add_argument("--with-queue", action="store_true", help="Also rebuild the deterministic experiment queue")
+    dataset_parser.set_defaults(func=cmd_funding_dataset)
+
+    queue_parser = funding_subparsers.add_parser("queue", help="Build deterministic funding-diff experiment queue")
+    queue_parser.add_argument("--coverage", default="data/funding/coverage.json", help="Input coverage report JSON")
+    queue_parser.add_argument("--queue", default="data/funding/experiment_queue.json", help="Output experiment queue JSON")
+    queue_parser.add_argument("--min-overlap", type=int, default=None, help="Override minimum overlapping periods")
+    queue_parser.add_argument("--max-symbols", type=int, default=None, help="Limit symbols after priority sorting")
+    queue_parser.set_defaults(func=cmd_funding_queue)
+
+    run_queue_parser = funding_subparsers.add_parser("run-queue", help="Execute queued funding-diff experiments")
+    run_queue_parser.add_argument("--queue", default="data/funding/experiment_queue.json", help="Input experiment queue JSON")
+    run_queue_parser.add_argument("--results", default="data/funding/experiment_results.jsonl", help="Append-only output results JSONL")
+    run_queue_parser.add_argument("--arbbot-root", default="/Users/griffith/Projects/AI/ArbBot", help="ArbBot repository root")
+    run_queue_parser.add_argument("--funding-cache", default="data/funding_cache.json", help="Local funding cache JSON")
+    run_queue_parser.add_argument("--max-experiments", type=int, default=None, help="Maximum new queue items to execute")
+    run_queue_parser.add_argument("--rerun-existing", action="store_true", help="Append another result even when result_id exists")
+    run_queue_parser.set_defaults(func=cmd_funding_run_queue)
+
+    packet_parser = funding_subparsers.add_parser("packet", help="Build FundArb promotion/kill packet from results")
+    packet_parser.add_argument("--results", default="data/funding/experiment_results.jsonl", help="Input experiment results JSONL")
+    packet_parser.add_argument("--packet", default="data/funding/promotion_packet.json", help="Output promotion packet JSON")
+    packet_parser.set_defaults(func=cmd_funding_packet)
+
+    campaign_parser = subparsers.add_parser("campaign", help="Long-horizon campaign harness commands")
+    campaign_subparsers = campaign_parser.add_subparsers(dest="campaign_command", required=True)
+
+    create_btc_parser = campaign_subparsers.add_parser("create-btc", help="Create the deterministic BTC MVP campaign")
+    create_btc_parser.add_argument("--id", default="btc-mvp", help="Campaign id")
+    create_btc_parser.add_argument("--workspace-root", default="data/campaigns", help="Local campaign artifact root")
+    create_btc_parser.set_defaults(func=cmd_campaign_create_btc)
+
+    campaign_run_parser = campaign_subparsers.add_parser("run", help="Run bounded campaign ticks")
+    campaign_run_parser.add_argument("--id", required=True, help="Campaign id")
+    campaign_run_parser.add_argument("--max-ticks", type=int, default=1, help="Maximum deterministic campaign ticks")
+    campaign_run_parser.add_argument("--worker", default="fake", help="Worker name; W1 only allows fake")
+    campaign_run_parser.set_defaults(func=cmd_campaign_run)
+
+    campaign_state_parser = campaign_subparsers.add_parser("state", help="Print projected campaign state")
+    campaign_state_parser.add_argument("--id", required=True, help="Campaign id")
+    campaign_state_parser.set_defaults(func=cmd_campaign_state)
+
+    campaign_revisit_parser = campaign_subparsers.add_parser("revisit", help="Revisit a campaign stage")
+    campaign_revisit_parser.add_argument("--id", required=True, help="Campaign id")
+    campaign_revisit_parser.add_argument("--stage", required=True, help="Stage id, e.g. S1")
+    campaign_revisit_parser.add_argument("--note", required=True, help="Revision note for the rerun")
+    campaign_revisit_parser.set_defaults(func=cmd_campaign_revisit)
     return parser
 
 

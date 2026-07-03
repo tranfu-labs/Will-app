@@ -29,8 +29,11 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Callable
 
+from yizhi.channels.base import Channel, InboundVerb
 from yizhi.core.schemas import EventType, WillState
 from yizhi.engine.budget import COGNITION_COST, can_afford
+from yizhi.engine.dialogue import answer_asks, apply_governance, inbound_observations
+from yizhi.engine.llm import load_llm
 from yizhi.engine.loop import LoopRunResult, run_step
 from yizhi.environments.base import ActionEnvironment
 from yizhi.state.store import append_event, list_events
@@ -104,6 +107,7 @@ def run_until(
     on_step: Callable[[int, LoopRunResult, WillState], None] | None = None,
     fetch_hook: Callable[[], bool] | None = None,
     max_fetches: int = 2,
+    channel: Channel | None = None,
 ) -> RunOutcome:
     """Loop `run_step` until a stop condition fires. `state` is mutated in place by
     `run_step` (budget/goals/loop_count) and snapshotted each loop, so passing it
@@ -117,7 +121,13 @@ def run_until(
     halting: the hook fetches deeper/broader funding history off-loop (`run_step`
     never SSHes — it only reads the cache), and the run continues on the new data.
     The hook returns True iff it got genuinely new data; `max_fetches` bounds it so a
-    barren fetch cannot spin. Default (no hook) is unchanged: exhaustion halts."""
+    barren fetch cannot spin. Default (no hook) is unchanged: exhaustion halts.
+
+    R2 dialogue seam (opt-in `channel`): each step first drains the channel inbox.
+    Governance commands (vision / kill goal) apply to `state` immediately, with
+    events; utterances (note/ask/...) ride into `run_step` as high-salience
+    observations; `ask`s are answered after the step from the will's own state.
+    Channel IO is infrastructure-level — it burns no budget and adds no gate."""
     steps = 0
     consecutive_errors = 0
     fetches = 0
@@ -126,13 +136,28 @@ def run_until(
     while steps < max_steps:
         # Economic stop: if the budget can't afford even to think, stop rather than
         # spin on cheap blocked loops. (run_step would halt internally anyway.)
+        # Checked BEFORE the channel drain so a halt never consumes (and loses)
+        # pending human messages — they stay in the inbox for the next run.
         if state.budget.halted or not can_afford(state.budget, COGNITION_COST):
             reason = STOP_BUDGET
             break
+        # Channel drain precedes the stuck check: human words are exactly the new
+        # information that can break a repetition pattern, so pending input both
+        # enters this step and suspends the stuck halt for it.
+        extra_observations = None
+        asks = []
+        if channel is not None:
+            commands = channel.poll()
+            if commands:
+                # Governance first — it changes the premises this very step reasons from.
+                for message in apply_governance(state, commands, db_path):
+                    channel.send(message)
+                extra_observations = inbound_observations(commands, env.name) or None
+                asks = [c for c in commands if c.verb == InboundVerb.ASK]
         # Semantic stop: repetition/ping-pong over the recent action events. The
         # cooldown after a fetch lets fresh post-fetch actions refill the window
         # before we judge exhaustion again.
-        if stop_on_stuck and stuck_cooldown <= 0:
+        if stop_on_stuck and stuck_cooldown <= 0 and extra_observations is None and not asks:
             stuck = detect_stuck(_recent_actions(db_path, window=stuck_window), window=stuck_window)
             if stuck is not None:
                 # Frontier exhausted. Widen the DATA frontier if we can, else halt.
@@ -156,7 +181,12 @@ def run_until(
                 reason = f"{STOP_STUCK}:{stuck}"
                 break
         try:
-            result = run_step(env, state, db_path)
+            result = run_step(env, state, db_path, extra_observations=extra_observations)
+            if asks:
+                # Answered after the step so the reply reflects the loop that digested
+                # the question; degrades to a deterministic receipt without an LLM.
+                for message in answer_asks(state, asks, llm=load_llm()):
+                    channel.send(message)
         except Exception:
             # One bad iteration must not kill an unattended run. run_step already
             # degrades LLM failures to the deterministic path; this catches harder

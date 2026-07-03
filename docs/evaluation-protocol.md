@@ -1,8 +1,8 @@
-# yizhi Evaluation Protocol
+# Will Evaluation Protocol
 
 > Status: draft  
 > Date: 2026-06-21  
-> Purpose: define how yizhi measures functional will without rewarding noise,
+> Purpose: define how Will measures functional will without rewarding noise,
 > unsafe autonomy, or theatrical persona simulation.
 
 ## 1. Evaluation Thesis
@@ -11,7 +11,7 @@ Will cannot be evaluated by single-turn answer quality. It must be evaluated
 over time, through state continuity, initiative quality, verified value, feedback
 learning, and safety compliance.
 
-yizhi's north-star metric is:
+Will's north-star metric is:
 
 > Autonomous Value Loops per evaluation period.
 

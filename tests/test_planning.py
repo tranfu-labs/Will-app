@@ -8,12 +8,26 @@ plan is load-bearing (not ceremony) and that all safety invariants hold.
 
 from __future__ import annotations
 
-from yizhi.core.schemas import Goal, Plan, PlanStep, PlanStepStatus, WillState
+from yizhi.core.schemas import (
+    ActionClass,
+    ActionProposal,
+    ActionRecord,
+    ActionStatus,
+    EnvironmentName,
+    Goal,
+    Plan,
+    PlanStep,
+    PlanStepStatus,
+    VerificationResult,
+    WillState,
+    WorldObservation,
+)
 from yizhi.engine.goals import decompose_goal
 from yizhi.engine.loop import _plan_depth, run_step
 from yizhi.engine.planning import choose_proposal
 from yizhi.environments.arbbot import ArbBotEnvironment, DEFAULT_ARBBOT_ROOT
 from yizhi.state.snapshots import load_or_create_state
+from yizhi.state.store import list_events
 
 
 def _proposals():
@@ -320,3 +334,84 @@ def test_backtest_verdict_is_the_finding_and_small_sample_earns_no_bonus(tmp_pat
     # a non-conclusive verdict earns no knowledge bonus: the only replenishment is the FULL
     # status gain, so spinning on small/unproven samples cannot inflate the budget.
     assert len(list_events(path=db, event_type="BudgetReplenished")) == 1
+
+
+class _NonBacktestExperimentEnv:
+    """A minimal env whose only action is a SUCCEEDING experiment with NO metrics — like
+    `make test`: judge_backtest returns None, so the finding comes from LLM extraction. Lets the
+    ①-economy be tested deterministically, without ArbBot's repo or a real `make` subprocess."""
+    name = "arbbot"
+
+    def observe(self):
+        return [WorldObservation(environment=EnvironmentName.ARBBOT, source="arbbot.test",
+                                 summary="offline suite", facts={"phase_4_paper_gate": True})]
+
+    def propose_actions(self, state):
+        return [ActionProposal(environment=EnvironmentName.ARBBOT, action_class=ActionClass.INTERNAL,
+                               title="Run offline test suite", command=["make", "test"],
+                               experiment=True, dry_run=True)]
+
+    def run(self, proposal):
+        return ActionRecord(proposal_id=proposal.id, environment=EnvironmentName.ARBBOT,
+                            status=ActionStatus.SUCCEEDED, command=proposal.command,
+                            exit_code=0, stdout="42 passed", metrics=None)
+
+    def verify(self, record):
+        return VerificationResult(action_record_id=record.id, passed=True, summary="ok")
+
+
+def test_non_backtest_experiment_finding_earns_no_knowledge_bonus(tmp_path, monkeypatch):
+    # ①: a SUCCEEDING non-backtest experiment (judgment None) whose finding is LLM-extracted
+    # updates the ledger but is NOT value — it pays NO knowledge bonus, even though the finding is
+    # textually new. Old code (conclusive = judgment is None) farmed KNOWLEDGE_REPLENISH=7 by
+    # rephrasing the same stdout. Deterministic: custom env, no ArbBot repo / no make subprocess.
+    from yizhi.memory.backends import SqliteMemoryBackend
+
+    llm = ScriptedLLM(finding="a brand new durable insight about the suite")
+    monkeypatch.setattr("yizhi.engine.loop.load_llm", lambda: llm)
+
+    db = tmp_path / "n.sqlite"
+    state = load_or_create_state(db)
+    run_step(_NonBacktestExperimentEnv(), state, db)
+
+    # the finding IS recorded (cognition is kept)...
+    ledger = [m for m in SqliteMemoryBackend(db).all(live_only=True) if m.kind == "arbbot:experiment"]
+    assert ledger
+    # ...but the ONLY replenishment is the FULL-status +1.0; the +7 knowledge bonus never fired.
+    assert state.budget.total_replenished == 1.0
+    assert len(list_events(path=db, event_type="BudgetReplenished")) == 1
+
+
+def test_non_backtest_experiment_neither_advances_plan_nor_scores_calibration_hit(tmp_path, monkeypatch):
+    # ① guard: a successful non-backtest experiment is not value, so it marks its plan step
+    # FAILED (not DONE) and scores calibration outcome 0 — make test can no longer fake plan
+    # progress or a prediction hit. Locks the made_progress/calibration semantics the bug drifted.
+    llm = ScriptedLLM(finding="brand new insight", confidence=0.9)
+    monkeypatch.setattr("yizhi.engine.loop.load_llm", lambda: llm)
+
+    db = tmp_path / "g.sqlite"
+    state = load_or_create_state(db)
+    state.active_plan = Plan(goal_id=state.goals[0].id, steps=[
+        PlanStep(description="s0", target_command=["make", "test"], status=PlanStepStatus.ACTIVE),
+        PlanStep(description="s1", target_command=["make", "test"]),
+    ])
+    run_step(_NonBacktestExperimentEnv(), state, db)
+
+    assert state.active_plan.steps[0].status == PlanStepStatus.FAILED   # not DONE: not value
+    cal = [e["payload"] for e in list_events(path=db, event_type="CalibrationScored")]
+    assert cal and cal[0]["outcome"] == 0.0                            # the predicted hit did NOT land
+
+
+def test_endorsed_drive_steers_deterministic_choice():
+    # Second-order endorsement enters the action causal chain: two inputs differing ONLY in
+    # endorsed_drive select DIFFERENT actions — the test that could not be written before ③ landed.
+    from yizhi.engine.planning import _deterministic_choose
+
+    routine = ActionProposal(environment=EnvironmentName.ARBBOT, action_class=ActionClass.INTERNAL,
+                             title="git status", command=["git", "status"], experiment=False, dry_run=True)
+    probe = ActionProposal(environment=EnvironmentName.ARBBOT, action_class=ActionClass.INTERNAL,
+                           title="make test", command=["make", "test"], experiment=True, dry_run=True)
+    proposals = [routine, probe]
+    assert _deterministic_choose(proposals, "curiosity_gap").command == ["make", "test"]        # explore
+    assert _deterministic_choose(proposals, "maintenance_pressure").command == ["git", "status"]  # upkeep
+    assert _deterministic_choose(proposals, None).command == ["git", "status"]                  # safe default

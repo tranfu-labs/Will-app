@@ -26,7 +26,8 @@ eval   (221)  能力 scorecard
 | 基础设施原语 | **直接租(pip)** | openai·fastembed(已用)·networkx(PageRank)·tenacity(重试) | 该租就租 |
 | 被验证的模式 | **移植/吸收** | OpenHands(卡死)·LangGraph(plan+cursor)·Magentic-One(停滞预算)·Generative Agents(显著性反思触发)·A-Mem(联想) | 读源码搬逻辑=吸收轮子,非重推 |
 | 控制流运行时(线性回路+薄 runner) | **暂自研(接缝化)** | 一个 while + 移植的 stuck-detector | ~350 行、更轻、保确定性/语义事件;留接缝 |
-| agent 全家桶运行时(LangGraph/CrewAI/AutoGen/Letta) | **不整吞** | — | 会替换小而合身、与治理长在一起的管道,得不偿失 |
+| agent 全家桶运行时(LangGraph/CrewAI/AutoGen/Letta/pi-as-runtime) | **不整吞** | — | 会替换小而合身、与治理长在一起的管道,得不偿失 |
+| coding agent workbench / 外部执行器 | **有界接入** | pi agent | 适合 repo 分析、patch proposal、测试摘要、skills/MCP 工具面;只能作为 worker/environment,不接管治理核 |
 
 ## 为什么现在不用 LangGraph 当底座
 
@@ -35,7 +36,7 @@ eval   (221)  能力 scorecard
 - **阻抗失配**:yizhi 每个状态转移都是受治理的(烧预算/过策略闸/编码 salience/发领域事件),塞进通用 node 等于在每条边上跟框架抽象搏斗;且"一步一 governed run_step + 快照"与"一次 invoke 把图跑完"是两种模型。
 - 现回路是**线性**的,LangGraph 的价值在**复杂图**。
 
-**重估触发条件**:当控制流真的变成图——manager 派生并行子 agent、动态多分支编排、需 HITL 审批门/时间旅行调试。届时 LangGraph(或子 agent 用 Claude Agent SDK)值回票价。因此:**runner/plan 设计成可替换接缝,换底座时不动认知核。**
+**重估触发条件**:当控制流真的变成图——manager 派生并行子 agent、动态多分支编排、需 HITL 审批门/时间旅行调试。届时 LangGraph(或子 agent/worker 用 Pydantic AI、pi agent SDK/RPC 等)值回票价。因此:**runner/plan/delegation 设计成可替换接缝,扩 worker 时不动认知核。**
 
 ## 落到三轴
 
@@ -58,10 +59,11 @@ eval   (221)  能力 scorecard
 | 用途 | 决定 | 性质 | 边界 |
 |---|---|---|---|
 | 多 LLM 供应层 | **租 LiteLLM** | 直接租(基础设施) | 现有 `LLMClient` Protocol 下加 `LiteLLMClient` 类;Protocol/双墙/离线默认不变;装 base SDK 不要 `[proxy]` extra |
-| 多 agent 委派 | **租 Pydantic AI** | 直接租(有界接缝) | 多 LLM、pydantic 原生、库非运行时、与 ArbBot 同栈;`engine/delegation.py` 接缝,预算门控 spawn + 子 agent 内重应用双墙 |
-| 项目知识库 | **租 mem0** | 直接租(基础设施) | 作**独立项目 KB**(ArbBot 持续知识),与 yizhi 自研意志记忆经济**分开**;mem0 不治理意志 |
+| 多 agent 委派 | **租 Pydantic AI 或等价 typed worker** | Accepted, not implemented | 多 LLM、pydantic 原生、库非运行时、与 ArbBot 同栈;未来接缝需预算门控 spawn + 子 agent 内重应用双墙;当前没有 `engine/delegation.py` |
+| 项目知识库 | **Mem0 已不作为意志记忆基座** | Superseded / inspect later | 当前自研 local/SQLite governed memory;若未来需要独立项目 KB,必须与 WillState/core memory 分离,不得治理意志 |
 | 复杂度分诊① | **移植 ~40 行**(可选 RouteLLM 信号) | 移植模式 | 控制流分支自写,留在确定性层 |
 | 涌现 replan③ | **移植 ~40 行** | 移植模式 | LangGraph 暂不引入;若引入走"审议/执行分层"缝 |
 | 批判④ | **移植 CRITIC 形 + 异 LLM critic** | 移植模式 + 多 LLM | oracle=yizhi 自己探针;LLM 提疑、确定性探针定真伪 |
+| coding/repo 委派执行 | **有界接入 pi agent** | 外部 worker / ActionEnvironment | pi 是 yizhi 的手和工作台,不是意志核;详见 ADR-002 |
 
-**框架运行时仍不整吞**(LangGraph/CrewAI/AutoGen 当底座会接管受治理控制平面)。统一缝:**租库/移植在"审议/检索/委派"低治理层,自研守"执行/预算/双墙"高治理核。**
+**框架运行时仍不整吞**(LangGraph/CrewAI/AutoGen/pi-as-runtime 当底座会接管受治理控制平面)。统一缝:**租库/移植/worker 在"审议/检索/委派/工具面"低治理层,自研守"执行/预算/双墙/记忆治理/语义事件"高治理核。**

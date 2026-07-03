@@ -1,0 +1,64 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="card">
+  <div class="card-head"><h2>存续预算曲线</h2><span class="muted">{{ budget_series_len }} 个快照</span></div>
+  {% if budget_points %}
+  <svg viewBox="0 0 600 120" class="chart" preserveAspectRatio="none">
+    <polyline points="{{ budget_points }}" fill="none" stroke="var(--accent)" stroke-width="2"/>
+  </svg>
+  {% else %}
+  <p class="muted empty">还没有快照序列。</p>
+  {% endif %}
+</div>
+
+<div class="card">
+  <div class="card-head"><h2>FundArb 研究交付物（promotion packet）</h2>
+    {% if packet %}<span class="muted mono">{{ packet.get("generated_at", "")[:19] }}</span>{% endif %}
+  </div>
+  {% if not packet %}
+  <p class="muted empty">未找到 promotion packet（默认路径 data/funding/promotion_packet.json）。</p>
+  {% else %}
+  <div class="kv">
+    {% set s = packet.get("summary", {}) %}
+    <span>决策 <b>{{ s.get("decisions", 0) }}</b></span>
+    <span>KILL <b>{{ s.get("kill", 0) }}</b></span>
+    <span>INSUFFICIENT <b>{{ s.get("insufficient", 0) }}</b></span>
+    <span>ITERATE <b>{{ s.get("iterate", 0) }}</b></span>
+    <span>PROMOTE <b>{{ s.get("promote", 0) }}</b></span>
+    <span class="badge {{ 'st-ok' if not packet.get('safety', {}).get('live_trading_authorized') else 'st-halted' }}">
+      live trading {{ "未授权" if not packet.get("safety", {}).get("live_trading_authorized") else "已授权？！" }}
+    </span>
+  </div>
+  <table>
+    <thead><tr><th>symbol</th><th>decision</th><th>judgment</th><th>reason</th><th>next action</th></tr></thead>
+    <tbody>
+      {% for d in packet.get("decisions", []) %}
+      <tr>
+        <td class="mono">{{ d.get("symbol", "") }}</td>
+        <td><span class="badge v-{{ d.get('judgment', '') }}">{{ d.get("decision", "") }}</span></td>
+        <td class="mono">{{ d.get("judgment", "") }}</td>
+        <td class="summary">{{ d.get("reason", "") }}</td>
+        <td class="summary muted">{{ d.get("next_action", "") }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% endif %}
+</div>
+
+<div class="card">
+  <div class="card-head"><h2>最近判定（JudgmentRendered）</h2></div>
+  {% if not judgments %}
+  <p class="muted empty">还没有判定事件。</p>
+  {% else %}
+  <table>
+    <thead><tr><th>时间</th><th>摘要</th></tr></thead>
+    <tbody>
+      {% for j in judgments %}
+      <tr><td class="mono">{{ j.ts[:19] }}</td><td class="summary">{{ j.summary }}</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% endif %}
+</div>
+{% endblock %}

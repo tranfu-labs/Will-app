@@ -26,6 +26,7 @@ class ActionClass(StrEnum):
 class EnvironmentName(StrEnum):
     SELF_REPO = "self_repo"
     ARBBOT = "arbbot"
+    PI_AGENT = "pi_agent"
 
 
 class ActionStatus(StrEnum):
@@ -94,6 +95,8 @@ class EventType(StrEnum):
     BUDGET_HALTED = "BudgetHalted"
     LLM_FALLBACK = "LlmFallback"
     GOAL_SET = "GoalSet"
+    GOAL_RETIRED = "GoalRetired"
+    VISION_SET = "VisionSet"
     CALIBRATION_SCORED = "CalibrationScored"
     SKILL_CREATED = "SkillCreated"
     EVAL_EVENT_RECORDED = "EvalEventRecorded"
@@ -108,6 +111,23 @@ class EventType(StrEnum):
     ROLLBACK_COMPLETED = "RollbackCompleted"
     INTENTION_RETIRED = "IntentionRetired"
     ACTION_ROLLBACK_REQUESTED = "ActionRollbackRequested"
+    DELEGATION_REQUESTED = "DelegationRequested"
+    DELEGATION_COMPLETED = "DelegationCompleted"
+    DELEGATION_FAILED = "DelegationFailed"
+    CAMPAIGN_STARTED = "CampaignStarted"
+    CAMPAIGN_STAGE_STARTED = "CampaignStageStarted"
+    TASKRUN_REQUESTED = "TaskRunRequested"
+    TASKRUN_COMPLETED = "TaskRunCompleted"
+    TASKRUN_FAILED = "TaskRunFailed"
+    DELIVERABLE_PRODUCED = "DeliverableProduced"
+    DELIVERABLE_ACCEPTED = "DeliverableAccepted"
+    DELIVERABLE_REJECTED = "DeliverableRejected"
+    DELIVERABLE_SUPERSEDED = "DeliverableSuperseded"
+    CAMPAIGN_STAGE_ADVANCED = "CampaignStageAdvanced"
+    CAMPAIGN_REVISED = "CampaignRevised"
+    CAMPAIGN_COMPLETED = "CampaignCompleted"
+    CAMPAIGN_PAUSED = "CampaignPaused"
+    CAMPAIGN_FAILED = "CampaignFailed"
 
 
 class YizhiModel(BaseModel):
@@ -116,7 +136,7 @@ class YizhiModel(BaseModel):
 
 class IdentityProfile(YizhiModel):
     id: str = Field(default_factory=lambda: new_id("identity"))
-    name: str = "yizhi"
+    name: str = "Will"
     role: str = "local governed will agent"
     description: str = "A local-first agent that forms governed intentions and learns from verified action."
     non_goals: list[str] = Field(
@@ -144,12 +164,22 @@ class ValuePolicy(YizhiModel):
     notes: list[str] = Field(default_factory=lambda: ["financial actions must be paper or dry-run only in v0"])
 
 
+class GoalStatus(StrEnum):
+    PURSUING = "pursuing"     # currently focused and being advanced (the default)
+    DONE = "done"             # completion criterion met: its plan ran to COMPLETED, or a
+    # single-step goal produced verified value
+    ABANDONED = "abandoned"   # replan exhausted while still stalling — give up, allow the next goal
+
+
 class Goal(YizhiModel):
     id: str = Field(default_factory=lambda: new_id("goal"))
     title: str
     description: str = ""
     priority: int = 50
     active: bool = True
+    # Goal lifecycle: a goal is PURSUED to done/abandoned before genesis sets the next one, so the
+    # will persistently advances ONE task across loops instead of overwriting it every loop.
+    status: GoalStatus = GoalStatus.PURSUING
 
 
 class ExistenceBudget(YizhiModel):
@@ -193,6 +223,14 @@ class WillState(YizhiModel):
     skill_ids: list[str] = Field(default_factory=list)
     budget: ExistenceBudget = Field(default_factory=ExistenceBudget)
     loop_count: int = 0
+    # Carryover of the last finding's surprise (world-model prediction error vs the prior belief
+    # about its subject). It raises how strongly the NEXT loop encodes what it observes — arousal
+    # enhances encoding (McGaugh; docs/theory-of-memory.md sec 2.2).
+    last_surprise: float = Field(default=0.0, ge=0.0, le=1.0)
+    # Homeostatic drive tensions carried across loops: an unresolved pressure (a commitment never
+    # closed, a gap never explored) decays slowly and re-accumulates instead of resetting every
+    # step. Keyed by drive name. See engine/drives.py.
+    drive_state: dict[str, float] = Field(default_factory=dict)
 
 
 class WorldObservation(YizhiModel):
@@ -259,6 +297,16 @@ class MemoryRecord(YizhiModel):
     trigger: str | None = None                           # prospective cue: "time:<iso>" or "condition:<desc>"
 
 
+class DiscardedDrive(YizhiModel):
+    """A competing drive that second-order endorsement did NOT make the will this
+    loop, with the reason it was set aside — so the choice between motives is
+    auditable, not silent (Frankfurt: the will is the desire the agent endorses,
+    not merely the loudest one). See docs/theory-of-will.md."""
+    name: str
+    intensity: float = Field(ge=0.0, le=1.0)
+    reason: str
+
+
 class Intention(YizhiModel):
     id: str = Field(default_factory=lambda: new_id("intention"))
     ts: str = Field(default_factory=utc_now_iso)
@@ -267,6 +315,10 @@ class Intention(YizhiModel):
     goal_id: str | None = None
     source_thought_ids: list[str] = Field(default_factory=list)
     drive_names: list[str] = Field(default_factory=list)
+    # Second-order endorsement: which competing drive the will endorsed this loop,
+    # and the drives it set aside (with reasons). None endorsed => maintenance/hold.
+    endorsed_drive: str | None = None
+    discarded_drives: list[DiscardedDrive] = Field(default_factory=list)
     active: bool = False
     retired: bool = False
 
@@ -402,3 +454,40 @@ class AutonomousValueLoop(YizhiModel):
     verification_result_id: str | None = None
     reflection_id: str | None = None
     eval_event_id: str | None = None
+
+
+# --- delegation to an external coding harness (R0; docs/resident-operator-plan.md) ---
+# Will delegates bounded, read-only repo work to a coding-harness CLI (Claude Code /
+# Codex). The harness is the HAND, never the will: every task is a NETWORK_READ-class
+# ActionProposal that must pass the policy gate, spend existence budget, and land as
+# DELEGATION_* semantic events. Write/apply is a separate governed stage, not here.
+
+
+class DelegationKind(StrEnum):
+    ANALYZE_REPO = "analyze_repo"
+    SUMMARIZE_TESTS = "summarize_tests"
+    INSPECT_DOCS = "inspect_docs"
+    PROPOSE_PATCH = "propose_patch"   # R1; defined now but denied by the R0 read-only gate
+
+
+class DelegationTask(YizhiModel):
+    id: str = Field(default_factory=lambda: new_id("delegation"))
+    ts: str = Field(default_factory=utc_now_iso)
+    kind: DelegationKind
+    instruction: str                                        # free-text brief; safety lives in the gate, not here
+    cwd: str                                                # restricted in-repo relative path the harness may read
+    allowed_tools: list[str] = Field(default_factory=list)  # read-only tool names handed to the harness
+    allow_write: bool = False                               # R0 must be False; the gate denies True
+    cost: float = 2.0                                       # existence-budget cost (network_read class)
+
+
+class DelegationReport(YizhiModel):
+    id: str = Field(default_factory=lambda: new_id("delegation-report"))
+    ts: str = Field(default_factory=utc_now_iso)
+    task_id: str
+    ok: bool
+    summary: str
+    artifacts: list[str] = Field(default_factory=list)  # paths produced (empty for pure read-only analysis)
+    raw_output_ref: str = ""                            # archive ref to the full harness transcript
+    cost_spent: float = 0.0
+    error: str | None = None

@@ -1,31 +1,38 @@
-# RFC: yizhi Technical Stack
+# RFC: Will Technical Stack
 
-> Status: draft  
+> Status: draft + current-state record
 > Date: 2026-06-21  
 > Scope: research prototype and Will Engine v0  
 > Non-goal: production SaaS architecture
 
+> Current-state note (2026-06): this file began as an implementation RFC. The
+> runtime now exists, so statements below distinguish **implemented facts** from
+> **future options**. See `docs/project-status.md` for the short current-state
+> control plane.
+
 ## 1. Decision Summary
 
-yizhi should build a local-first Will Engine with project-owned schemas and a
+Will should build a local-first Will Engine with project-owned schemas and a
 small number of mature infrastructure components:
 
 | Layer | Decision |
 |---|---|
 | Canonical state | Project-owned `WillState` and event schemas. |
-| Runtime spine | LangGraph-style state graph with checkpoints and human interrupts. |
+| Runtime spine | Project-owned `run_step` + thin `run_until`; keep LangGraph-style cursor/checkpoint ideas, but do not adopt LangGraph as v0 spine. |
 | Schema contracts | Pydantic models for every state/event/action object. |
 | Local persistence | SQLite first; no remote database required for v0. |
-| Memory | Project-owned governance schema, optional Mem0 adapter later. |
+| Memory | Project-owned will-governed memory economy on local/SQLite backends. Mem0 as will-memory base is superseded; an external project KB would require a separate future decision. |
 | Stateful agent reference | Borrow Letta/MemGPT core-memory ideas; do not outsource WillState. |
 | Tool/action layer | Read-only and artifact-writing tools first; external side effects behind policy gates. |
 | Evaluation | Local SQLite/JSONL eval ledger plus explicit Autonomous Value Loop scoring. |
 | Sandboxing | Local subprocess/file sandbox first; Docker/E2B/Modal later for code execution. |
-| Provider | Use interchangeable model adapters; do not make any model provider the architecture. |
+| Provider | Use interchangeable model adapters (`LLMClient`, OpenAI, LiteLLM); do not make any model provider the architecture. |
+| External agent workbench | pi agent may be used as a bounded repo/coding worker via delegation or `ActionEnvironment`, never as the Will Engine runtime. |
+| Interaction / resident layer | A single `Channel` (reporting + commands) and a resident daemon (`serve`) are a planned governed seam, not a new spine. See `docs/resident-operator-plan.md`. |
 
 The most important principle:
 
-> yizhi owns will. Frameworks can execute, remember, retrieve, trace, or route,
+> Will owns will. Frameworks can execute, remember, retrieve, trace, or route,
 > but they must not define intention, drive, value, selfhood, or governance.
 
 ## 2. Strategic Goal
@@ -45,39 +52,36 @@ This RFC only commits to phases 1 and 2.
 
 Current project shape:
 
-- research repository;
-- local knowledge base;
-- no application runtime yet.
+- research repository and local knowledge base;
+- local Python package with a deterministic governed Will Engine runtime under the legacy `yizhi/` namespace;
+- SQLite event/snapshot/memory store;
+- command-line loop and runner;
+- ArbBot paper/read-only work surface for funding-diff research;
+- no product UI yet.
 
-Next project shape:
-
-- local Python package or small app;
-- SQLite state store;
-- command-line research loop first;
-- web UI only after schemas and evaluation stabilize.
-
-Expected first CLI shape:
+Implemented CLI shape:
 
 ```text
-yizhi observe <file-or-text>
-yizhi appraise --since today
-yizhi propose
-yizhi act --proposal <id> --dry-run
-yizhi verify <action-id>
-yizhi reflect --action <id>
-yizhi eval loops
+will init
+will observe --env self|self_repo|arbbot
+will step --env self|self_repo|arbbot
+will run --env self|self_repo|arbbot --max-steps N
+will events --limit N
+will state
+will eval loops
 ```
 
 ## 4. Mature Project Findings
 
 | Candidate | Source | Maturity | Fit | Reusable Pieces | Risks | Decision |
 |---|---|---|---|---|---|---|
-| LangGraph | GitHub/docs | High; MIT; active; stateful agent runtime | High | Graph state, checkpointing, interrupts, durable workflows | Can encourage graph complexity if overused | Adopt as runtime spine when implementation starts |
+| LangGraph | GitHub/docs | High; MIT; active; stateful agent runtime | Medium-later | Graph state, checkpointing, interrupts, durable workflows | Can encourage graph complexity and hide yizhi semantic events if adopted too early | Borrow patterns now; defer adoption until control flow is genuinely graph-shaped |
 | Pydantic | Python ecosystem | High | High | Contracts, validation, serialization | Schema churn early | Adopt |
 | SQLite | stdlib/local | High | High | Local-first storage, auditability, portability | Limited multi-user concurrency | Adopt for v0 |
 | Letta/MemGPT | GitHub/docs/paper | High; Apache-2.0; active | Medium-high | Core memory, archival memory, stateful agent ideas | Full framework may constrain custom WillState | Borrow concepts; inspect adapter later |
-| Mem0 | GitHub/docs/paper | High; Apache-2.0; active | Medium-high | Memory extraction/retrieval layer | Memory governance can become black-boxed | Use only behind project-owned memory schema |
+| Mem0 | GitHub/docs/paper | High; Apache-2.0; active | Low for will memory; possible later for separate project KB | Memory extraction/retrieval layer | Duplicates/fights yizhi's salience, temporal supersession, and governed forgetting if used as core memory | Superseded for will memory; inspect later only as independent project KB |
 | OpenAI Agents SDK | Official docs | Medium-high | Medium | Tooling, handoffs, guardrails, tracing | Provider lock-in if central | Adapter/reference only |
+| pi agent | Local docs/SDK | Medium-high; SDK/RPC; strong coding harness | High as worker, low as core | Repo analysis, patch proposal, test summaries, skills/extensions/MCP-style tool surface | If central, it turns yizhi into a coding agent shell and weakens governance semantics | Use only as bounded delegated worker / optional `ActionEnvironment` |
 | Temporal | Production workflow platform | High | Later | Durable long-running workflows | Operational overhead too early | Defer until long-running jobs need it |
 | Docker/E2B/Modal | Sandboxes | High | Later | Isolated execution | Cost, complexity, secrets risk | Defer for code/action sandbox v1 |
 | Postgres/pgvector | Production storage | High | Later | Multi-user, vectors, scale | Premature infra | Defer until productization |
@@ -90,6 +94,7 @@ yizhi eval loops
 | Start with a chat app | Chat is the wrong primary object; yizhi's object is WillState and value loops. |
 | Start by connecting all user apps | Data access before governance increases noise and privacy risk. |
 | Use a full autonomous agent framework as the core | It would hide intention and safety semantics behind generic task automation. |
+| Use pi agent as the Will Engine runtime | pi is excellent as a coding harness, but would make budget/policy/memory/semantic events secondary to a generic session. |
 | Store all memory only in vectors | Vector recall cannot express versioning, provenance, authorization, or rollback. |
 | Implement live trading/actions early | Side-effectful autonomy before evaluation and authorization is unsafe. |
 | Build web UI first | UI can polish the wrong abstraction before WillState is proven. |
@@ -122,7 +127,17 @@ Will Engine v0 should define these Pydantic models before runtime wiring:
 
 ## 7. Storage Design
 
-SQLite v0 tables:
+Implemented SQLite v0 tables:
+
+| Table | Purpose |
+|---|---|
+| `events` | Append-only semantic event stream with aggregate/correlation/causation ids. |
+| `snapshots` | Serialized `WillState` checkpoints. |
+| `memories` | Serialized governed `MemoryRecord` rows plus searchable metadata. |
+| `memory_embeddings` | Optional embedding vectors keyed by memory id. |
+
+Earlier RFC target tables, kept as historical design vocabulary rather than
+implemented schema:
 
 | Table | Purpose |
 |---|---|
@@ -202,9 +217,10 @@ turns episodes into knowledge and summaries) and `ForgettingPolicy` (decay curve
 per-type floors, demotion thresholds, audit). The full rationale is in
 `docs/theory-of-memory.md`.
 
-Mem0 can be useful for extraction and retrieval, but yizhi should never let a
-memory service silently define core identity, policies, goals, salience, or what
-may be forgotten.
+The earlier Mem0-base decision has been superseded. Mem0 can still be useful as
+a future *separate project knowledge base*, but yizhi should never let a memory
+service silently define core identity, policies, goals, salience, temporal
+validity, or what may be forgotten.
 
 ## 10. Action Classes
 
@@ -225,6 +241,14 @@ observe ArbBot and propose or run paper/read-only actions through documented
 commands, but it must not implement live execution, add exchange credentials, or
 bypass ArbBot's own roadmap and safety gates. See
 `docs/arbbot-action-environment.md`.
+
+A planned second action environment, `PI_AGENT`, delegates to a coding-harness
+CLI under the same classes: read-only analysis as `network_read`, patch drafting
+as `write_artifact` in an isolated worktree, and governed apply as `self_modify`/
+`external_write` with human approval. Outbound channel reports are
+infrastructure-level (event-logged, not budgeted); content-bearing external
+messages are `external_write`. See `docs/resident-operator-plan.md`. Not
+implemented.
 
 ## 11. Context Acquisition Strategy
 
@@ -270,7 +294,27 @@ replace the core WillState model.
 
 ## 13. Verification Matrix
 
-Before claiming Will Engine v0 works:
+Current deterministic core gate:
+
+| Check | Command/Method | Required Result |
+|---|---|---|
+| Offline pytest | `python3 -m pytest -q` | 160 tests pass. |
+| GitHub Actions | `.github/workflows/ci.yml` | Python 3.11/3.12/3.13 run base+dev pytest. |
+| Git diff hygiene | `git diff --check` | No whitespace/conflict-marker errors. |
+| Manifest JSON | `python3 -m json.tool data/papers/manifest.json` | Valid JSON. |
+| Source JSON | `python3 -m json.tool data/sources/manifest.json` | Valid JSON. |
+| Local self loop | `will run --env self --max-steps 3` | Bounded stop, full loop events, no unbounded spin. |
+
+Manual/future gates that do **not** run in CI:
+
+| Gate | Status |
+|---|---|
+| LiteLLM real provider smoke | Future/manual; code path exists, provider hardening not complete. |
+| Embedding model smoke | Future/manual; optional extra only. |
+| VPS funding refresh | Manual only; writes `data/funding_cache.json`, never part of default loop/CI. |
+| ArbBot live/network | Explicitly out of v0 default gates. |
+
+Historical pre-runtime checklist, kept for provenance:
 
 | Check | Command/Method | Required Result |
 |---|---|---|
@@ -280,16 +324,18 @@ Before claiming Will Engine v0 works:
 | SQLite count | `select count(*) from papers;` | Matches manifest length. |
 | Link hygiene | Manual spot check key sources | No known dead primary links in core docs. |
 | Docs consistency | Search for Cursor/Claude/yizhi definitions | Differentiation is explicit. |
-| Future runtime | Unit tests for each schema and loop node | Required after implementation begins. |
+| Future runtime | Unit tests for each schema and loop node | Superseded by current 160-test offline suite. |
 
 ## 14. Implementation Gate For Will Engine v0
 
-Do not implement runtime until these docs exist and are coherent:
+This gate has passed: the runtime is implemented. The docs that originally
+unblocked implementation were:
 
 - [docs/will-engine-whitepaper.md](/Users/griffith/Projects/AI/yizhi/docs/will-engine-whitepaper.md)
 - [docs/technical-stack-rfc.md](/Users/griffith/Projects/AI/yizhi/docs/technical-stack-rfc.md)
 - [docs/evaluation-protocol.md](/Users/griffith/Projects/AI/yizhi/docs/evaluation-protocol.md)
 - [docs/references.md](/Users/griffith/Projects/AI/yizhi/docs/references.md)
 
-After that, the first implementation slice should be schemas + SQLite + a
-single research-loop CLI, not a full product UI.
+The next gate is not "implement runtime"; it is to evolve the current runtime
+toward a project/campaign research factory without losing the deterministic
+policy, budget, memory, and semantic-event boundaries.

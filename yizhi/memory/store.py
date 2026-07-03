@@ -227,6 +227,19 @@ class MemoryStore:
                     continue
         return sorted(due, key=lambda r: r.trigger or "")
 
+    def fire_prospective(self, records: list[MemoryRecord], *, now_ts: str | None = None) -> list[str]:
+        """Consume prospective memories that have surfaced (their time-trigger fired and they were
+        folded into recall): revoke them so a past-due cue does not re-surface every subsequent
+        loop. A deferred intention fires ONCE — acting on it becomes fresh memory, not a standing
+        reminder. Reversible (revoked, history kept); emits MEMORY_FORGOTTEN."""
+        fired: list[str] = []
+        for record in records:
+            revoked = record.model_copy(update={"revoked": True, "revoke_reason": "prospective:fired"})
+            self.backend.update(revoked)
+            self._emit(EventType.MEMORY_FORGOTTEN, revoked)
+            fired.append(revoked.id)
+        return fired
+
     def consolidate(self, will_state: WillState | None = None) -> ConsolidationResult:
         """Replay episodic memories into semantic summaries (absorb/learn/summarize).
         Periodic compression; reconsolidation is a separate per-step pass."""

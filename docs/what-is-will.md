@@ -49,7 +49,7 @@ matter for yizhi.
 In *The World as Will and Representation*, Schopenhauer makes Wille — blind,
 ceaseless striving — the thing-in-itself underlying all appearance, and makes the
 intellect a secondary, instrumental servant of that striving. The lesson for
-yizhi is not the metaphysics but the **ordering**: a system can be built
+Will's wager is not the metaphysics but the **ordering**: a system can be built
 intellect-first (a reasoner that occasionally wants) or will-first (a striving
 that recruits reasoning). Today's LLM agents are intellect-first; will is bolted
 on as a prompt. yizhi's bet is that durable agency needs the will-first ordering

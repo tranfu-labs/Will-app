@@ -1,13 +1,13 @@
-# yizhi Will Engine Whitepaper
+# Will Engine Whitepaper
 
 > Status: working thesis  
 > Date: 2026-06-21  
-> Purpose: define yizhi's research object, north star, technical hypothesis,
+> Purpose: define Will's research object, north star, technical hypothesis,
 > evaluation protocol, and first implementation boundary.
 
 ## Abstract
 
-yizhi studies and builds an AI Will Engine: a system layer that lets an agent
+Will studies and builds an AI Will Engine: a system layer that lets an agent
 hold durable intentions, maintain a self-model, appraise the world through
 internal drives, act through tools, learn from feedback, and create externally
 verifiable value under human-governed constraints.

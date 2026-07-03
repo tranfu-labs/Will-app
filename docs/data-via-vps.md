@@ -35,7 +35,7 @@ ssh -i ~/Downloads/ArbBot.pem ubuntu@13.158.71.214
 2. **缓存(本机)**:取到的真数据写本机 `data/funding_cache.json`(两所对齐序列 + interval + 快照价差)。
 3. **回测/分析(本机)**:yizhi 的回测探针**读缓存**、用 ArbBot 的纯函数 `backtest_spec` 在本机跑——**无网络、确定性、可测试**。yizhi 的回路里**永不 SSH**。
 
-## yizhi 的数据获取工具
+## Will 的数据获取工具
 
 - `scripts/fetch_funding_via_vps.py` —— 在 VPS 取 Binance+Bybit 全市场 funding 快照、按跨所价差选长尾候选+主流基线、拉对齐历史、写 `data/funding_cache.json`。**这是 yizhi 获取真数据的唯一入口。**
 - `yizhi/environments/arbbot.py` 的回测探针读该缓存做真回测(替代早期合成数据)。

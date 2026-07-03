@@ -1,10 +1,11 @@
 """Configuration loading for the optional LLM cognition layer.
 
 The deterministic loop needs no config and makes no network calls — that is the
-default. An LLM is opt-in: a git-ignored `yizhi.config.toml` (copied from
-`yizhi.config.example.toml`) supplies the provider, key, and model, and a few
-env vars can override it. Read with stdlib `tomllib` so loading needs no
-third-party dependency. See docs and the plan; the secret never enters git.
+default. An LLM is opt-in: a git-ignored `will.config.toml` (copied from
+`will.config.example.toml`) supplies the provider, key, and model, and a few
+env vars can override it. The legacy `yizhi.config.toml` path is still accepted
+as a fallback. Read with stdlib `tomllib` so loading needs no third-party
+dependency. See docs and the plan; the secret never enters git.
 """
 
 from __future__ import annotations
@@ -14,7 +15,16 @@ import tomllib
 from dataclasses import dataclass
 from pathlib import Path
 
-DEFAULT_CONFIG_PATH = Path("yizhi.config.toml")
+DEFAULT_CONFIG_PATH = Path("will.config.toml")
+LEGACY_CONFIG_PATH = Path("yizhi.config.toml")
+
+
+def _resolve_config_path(path: str | Path) -> Path:
+    """Prefer Will's config name, but keep the old yizhi file working."""
+    config_path = Path(path)
+    if config_path == DEFAULT_CONFIG_PATH and not config_path.exists() and LEGACY_CONFIG_PATH.exists():
+        return LEGACY_CONFIG_PATH
+    return config_path
 
 
 @dataclass(frozen=True)
@@ -58,7 +68,7 @@ def load_llm_config(path: str | Path = DEFAULT_CONFIG_PATH) -> LLMConfig:
     vars (YIZHI_LLM_ENABLED, OPENAI_API_KEY, YIZHI_LLM_MODEL, YIZHI_LLM_PROVIDER,
     YIZHI_LLM_BASE_URL) win over the file so a key can stay out of the repo dir."""
     data: dict = {}
-    config_path = Path(path)
+    config_path = _resolve_config_path(path)
     if config_path.exists():
         with config_path.open("rb") as handle:
             data = (tomllib.load(handle) or {}).get("llm", {})
@@ -94,7 +104,7 @@ def load_embedding_config(path: str | Path = DEFAULT_CONFIG_PATH) -> EmbeddingCo
     """Load `[embedding]` from the config file (if present), then overlay env vars
     (YIZHI_EMBEDDING_ENABLED, YIZHI_EMBEDDING_MODEL). Missing → disabled."""
     data: dict = {}
-    config_path = Path(path)
+    config_path = _resolve_config_path(path)
     if config_path.exists():
         with config_path.open("rb") as handle:
             data = (tomllib.load(handle) or {}).get("embedding", {})
@@ -106,3 +116,113 @@ def load_embedding_config(path: str | Path = DEFAULT_CONFIG_PATH) -> EmbeddingCo
         enabled = _as_bool(os.environ["YIZHI_EMBEDDING_ENABLED"])
     model = os.environ.get("YIZHI_EMBEDDING_MODEL", model)
     return EmbeddingConfig(enabled=enabled, model=model)
+
+
+@dataclass(frozen=True)
+class DelegationConfig:
+    """External coding-harness delegation (R0; docs/resident-operator-plan.md).
+
+    Off by default and never used by the deterministic offline suite — tests inject a
+    fake client. When enabled, `command` is the harness CLI (e.g. `claude` / `codex`)
+    that Will drives as a bounded, read-only worker inside `root`."""
+
+    enabled: bool = False
+    harness: str = "claude"                                       # claude | codex | ...
+    command: str = ""                                             # CLI entrypoint; empty => inactive
+    default_allowed_tools: tuple[str, ...] = ("Read", "Grep", "Glob")
+    request_timeout: float = 300.0
+    root: str = ""                                                # restricted root the harness may run in
+
+    @property
+    def active(self) -> bool:
+        return self.enabled and bool(self.command)
+
+
+def load_delegation_config(path: str | Path = DEFAULT_CONFIG_PATH) -> DelegationConfig:
+    """Load `[delegation]` from the config file (if present), then overlay env vars
+    (YIZHI_DELEGATION_ENABLED, YIZHI_DELEGATION_HARNESS, YIZHI_DELEGATION_COMMAND,
+    YIZHI_DELEGATION_ROOT). Missing → disabled."""
+    data: dict = {}
+    config_path = _resolve_config_path(path)
+    if config_path.exists():
+        with config_path.open("rb") as handle:
+            data = (tomllib.load(handle) or {}).get("delegation", {})
+
+    defaults = DelegationConfig()
+    enabled = bool(data.get("enabled", defaults.enabled))
+    harness = str(data.get("harness", defaults.harness))
+    command = str(data.get("command", defaults.command))
+    tools = data.get("default_allowed_tools", list(defaults.default_allowed_tools))
+    request_timeout = float(data.get("request_timeout", defaults.request_timeout))
+    root = str(data.get("root", defaults.root))
+
+    if "YIZHI_DELEGATION_ENABLED" in os.environ:
+        enabled = _as_bool(os.environ["YIZHI_DELEGATION_ENABLED"])
+    harness = os.environ.get("YIZHI_DELEGATION_HARNESS", harness)
+    command = os.environ.get("YIZHI_DELEGATION_COMMAND", command)
+    root = os.environ.get("YIZHI_DELEGATION_ROOT", root)
+
+    return DelegationConfig(
+        enabled=enabled,
+        harness=harness,
+        command=command,
+        default_allowed_tools=tuple(tools),
+        request_timeout=request_timeout,
+        root=root,
+    )
+
+
+@dataclass(frozen=True)
+class ChannelConfig:
+    """Single-channel interaction layer (R2; docs/resident-operator-plan.md).
+
+    `local_inbox` is the offline default (file-backed JSONL, always usable). `telegram`
+    is a real adapter, manual-gated: inactive unless a bot token and chat id are set."""
+
+    enabled: bool = False
+    kind: str = "local_inbox"                 # local_inbox | telegram
+    root: str = ".yizhi/channel"              # legacy local_inbox file directory
+    telegram_token: str = ""
+    telegram_chat_id: str = ""
+    request_timeout: float = 30.0
+
+    @property
+    def active(self) -> bool:
+        if self.kind == "telegram":
+            return self.enabled and bool(self.telegram_token) and bool(self.telegram_chat_id)
+        return True  # local_inbox is the safe offline substrate
+
+
+def load_channel_config(path: str | Path = DEFAULT_CONFIG_PATH) -> ChannelConfig:
+    """Load `[channel]` from the config file (if present), then overlay env vars
+    (YIZHI_CHANNEL_ENABLED, YIZHI_CHANNEL_KIND, YIZHI_CHANNEL_ROOT, YIZHI_TELEGRAM_TOKEN,
+    YIZHI_TELEGRAM_CHAT_ID). Missing → offline local_inbox."""
+    data: dict = {}
+    config_path = _resolve_config_path(path)
+    if config_path.exists():
+        with config_path.open("rb") as handle:
+            data = (tomllib.load(handle) or {}).get("channel", {})
+
+    defaults = ChannelConfig()
+    enabled = bool(data.get("enabled", defaults.enabled))
+    kind = str(data.get("kind", defaults.kind))
+    root = str(data.get("root", defaults.root))
+    telegram_token = str(data.get("telegram_token", defaults.telegram_token))
+    telegram_chat_id = str(data.get("telegram_chat_id", defaults.telegram_chat_id))
+    request_timeout = float(data.get("request_timeout", defaults.request_timeout))
+
+    if "YIZHI_CHANNEL_ENABLED" in os.environ:
+        enabled = _as_bool(os.environ["YIZHI_CHANNEL_ENABLED"])
+    kind = os.environ.get("YIZHI_CHANNEL_KIND", kind)
+    root = os.environ.get("YIZHI_CHANNEL_ROOT", root)
+    telegram_token = os.environ.get("YIZHI_TELEGRAM_TOKEN", telegram_token)
+    telegram_chat_id = os.environ.get("YIZHI_TELEGRAM_CHAT_ID", telegram_chat_id)
+
+    return ChannelConfig(
+        enabled=enabled,
+        kind=kind,
+        root=root,
+        telegram_token=telegram_token,
+        telegram_chat_id=telegram_chat_id,
+        request_timeout=request_timeout,
+    )

@@ -1,6 +1,6 @@
-# yizhi Paper Library
+# Will Paper Library
 
-This folder is the local research database for yizhi's will/agent study.
+This folder is the local research database for Will's will/agent study.
 
 ## Layout
 
