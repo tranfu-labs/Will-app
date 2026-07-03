@@ -145,7 +145,11 @@ grounded in the will's own state (vision/goal/plan/budget) — via the LLM when
 the engine is configured, deterministic receipt otherwise. `vision <text>` and
 `kill goal` govern state with semantic events. `/research <topic>` runs one
 governed read-only delegation (policy gate → existence budget → coding-harness
-worker with WebSearch → secret scan) and prints the report.
+worker with WebSearch → secret scan) and prints the report. `/patch
+<instruction>` drafts a unified diff through the same chain (R1): the worker
+only returns diff text, a deterministic validator checks structure/paths/
+secrets, and the artifact lands under `data/delegation/` — never applied;
+review with `git apply --check`.
 
 ```bash
 will chat                          # default: adopted campaign context, else self

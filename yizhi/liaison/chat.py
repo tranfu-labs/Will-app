@@ -119,6 +119,35 @@ def _run_research(
         io.say(f"[research 未执行: {reason}]")
 
 
+def _run_patch(
+    instruction: str,
+    state: WillState,
+    db_path: str | Path,
+    io: ChatIO,
+    client: DelegationClient | None,
+) -> None:
+    from yizhi.engine.patches import propose_patch_via_delegation
+
+    if client is None:
+        from yizhi.config import load_delegation_config
+        from yizhi.engine.delegation import CliHarnessDelegationClient
+
+        client = CliHarnessDelegationClient(load_delegation_config())
+    outcome, validation, artifact = propose_patch_via_delegation(
+        instruction, cwd=".", client=client, budget=state.budget, db_path=db_path
+    )
+    state.budget = outcome.budget
+    create_snapshot(state, path=db_path)
+    if artifact:
+        io.say(
+            f"patch 已起草(未 apply): {artifact}\n"
+            f"改动: {', '.join(validation['files'])} (+{validation['additions']} -{validation['deletions']})\n"
+            f"审查: git apply --check {artifact}"
+        )
+    else:
+        io.say(f"[patch 未通过: {'; '.join(validation['errors'])}]")
+
+
 def run_chat(
     db_path: str | Path,
     *,
@@ -133,7 +162,7 @@ def run_chat(
     state = load_or_create_state(db_path)
     if llm is None:
         llm = load_llm()  # None stays None when the engine is off — receipt answers
-    io.say("will chat — 输入即对话；/status 状态，/research <主题> 查资料，/quit 退出。")
+    io.say("will chat — 输入即对话；/status 状态，/research <主题> 查资料，/patch <改什么> 起草补丁，/quit 退出。")
     turns = 0
     while max_turns is None or turns < max_turns:
         try:
@@ -154,6 +183,13 @@ def run_chat(
                 io.say("用法: /research <主题>")
                 continue
             _run_research(topic, state, db_path, io, delegation_client)
+            continue
+        if line.startswith("/patch"):
+            instruction = line[len("/patch"):].strip()
+            if not instruction:
+                io.say("用法: /patch <要改什么>")
+                continue
+            _run_patch(instruction, state, db_path, io, delegation_client)
             continue
 
         command = _as_command(line)

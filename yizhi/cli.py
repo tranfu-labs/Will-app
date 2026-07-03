@@ -460,6 +460,39 @@ def cmd_campaign_revisit(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_patch_propose(args: argparse.Namespace) -> int:
+    """R1: draft a patch through the governed delegation chain. Never applies —
+    review with `git apply --check <artifact>` and apply manually (R4 later)."""
+    from yizhi.engine.patches import propose_patch_via_delegation
+    from yizhi.state.snapshots import load_or_create_state as _load_state
+    from yizhi.state.store import create_snapshot
+
+    db_path = init_db(args.db)
+    state = _load_state(db_path)
+    client = CliHarnessDelegationClient(load_delegation_config())
+    outcome, validation, artifact = propose_patch_via_delegation(
+        args.instruction,
+        cwd=args.cwd,
+        client=client,
+        budget=state.budget,
+        db_path=db_path,
+    )
+    state.budget = outcome.budget
+    create_snapshot(state, path=db_path)
+    _print_kv(
+        {
+            "policy decision": outcome.gate.decision,
+            "validation": "passed" if validation["passed"] else "; ".join(validation["errors"]),
+            "files": validation["files"],
+            "diff": f"+{validation['additions']} -{validation['deletions']}",
+            "artifact": artifact or "n/a",
+            "review": f"git apply --check {artifact}" if artifact else "n/a",
+            "budget": f"{state.budget.balance:.1f}",
+        }
+    )
+    return 0 if artifact else 1
+
+
 def cmd_chat(args: argparse.Namespace) -> int:
     from yizhi.liaison.chat import run_chat
 
@@ -675,6 +708,13 @@ def build_parser() -> argparse.ArgumentParser:
     chat_parser.add_argument("--campaign-id", default=None, help="Chat in a campaign's context (default: adopted campaign, else self)")
     chat_parser.add_argument("--worker", default="fake", help="Campaign worker for in-chat ticks (fake/claude/codex)")
     chat_parser.set_defaults(func=cmd_chat)
+
+    patch_parser = subparsers.add_parser("patch", help="R1 governed patch drafting (never applies)")
+    patch_subparsers = patch_parser.add_subparsers(dest="patch_command", required=True)
+    patch_propose_parser = patch_subparsers.add_parser("propose", help="Draft one patch via the coding-harness worker")
+    patch_propose_parser.add_argument("--instruction", required=True, help="What the patch should change")
+    patch_propose_parser.add_argument("--cwd", default=".", help="Restricted in-repo directory the worker may read (default: repo root, so diff paths are root-relative)")
+    patch_propose_parser.set_defaults(func=cmd_patch_propose)
 
     campaign_revisit_parser = campaign_subparsers.add_parser("revisit", help="Revisit a campaign stage")
     campaign_revisit_parser.add_argument("--id", required=True, help="Campaign id")

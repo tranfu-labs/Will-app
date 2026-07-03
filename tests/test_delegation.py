@@ -53,8 +53,15 @@ def test_write_flag_denied():
     assert any("read-only" in r for r in gate.reasons)
 
 
-def test_nonreadonly_kind_denied():
-    gate = run_policy_gate(build_delegation_proposal(_task(kind=DelegationKind.PROPOSE_PATCH)))
+def test_kind_allowlist_boundary():
+    # R1: propose_patch is now allowed — the worker still only returns diff TEXT
+    # (write tools stay denied; the validator/archive live outside the worker).
+    assert run_policy_gate(build_delegation_proposal(_task(kind=DelegationKind.PROPOSE_PATCH))).allowed
+    # A kind outside the allowlist is still denied structurally.
+    forged = build_delegation_proposal(_task())
+    forged.metadata["delegation_task"]["kind"] = "exfiltrate_repo"
+    forged.command = [forged.command[0], "kind=exfiltrate_repo"]
+    gate = run_policy_gate(forged)
     assert not gate.allowed
     assert any("read-only allowlist" in r for r in gate.reasons)
 

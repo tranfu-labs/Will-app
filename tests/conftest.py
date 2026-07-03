@@ -11,3 +11,6 @@ import os
 
 os.environ["YIZHI_LLM_ENABLED"] = "0"
 os.environ["YIZHI_EMBEDDING_ENABLED"] = "0"
+# The offline suite must never start a real coding-harness subprocess, even
+# when the developer's local config has the delegation gate open.
+os.environ["YIZHI_DELEGATION_ENABLED"] = "0"

@@ -73,12 +73,14 @@ def command_text(command: list[str]) -> str:
     return " ".join(command)
 
 
-# pi_agent delegation (R0; docs/resident-operator-plan.md). A delegation rides as a
-# NETWORK_READ ActionProposal whose command is the sentinel + kind, with the full
-# DelegationTask in metadata. v0 is READ-ONLY: only read kinds, no write tools, no
-# write flag, and an in-repo relative cwd. Write/apply is a later governed stage.
+# pi_agent delegation (R0 read-only + R1 patch drafting; resident-operator-plan).
+# A delegation rides as a NETWORK_READ ActionProposal whose command is the sentinel
+# + kind, with the full DelegationTask in metadata. The worker NEVER writes: R0
+# kinds return analysis text, and R1's propose_patch returns a unified diff as
+# TEXT — the deterministic patch validator and the artifact write live on this
+# side of the boundary. Apply remains a separate, later governed stage (R4).
 DELEGATION_SENTINEL = "yizhi:delegate"
-_DELEGATION_READONLY_KINDS = {"analyze_repo", "summarize_tests", "inspect_docs", "research_topic", "run_analysis"}
+_DELEGATION_READONLY_KINDS = {"analyze_repo", "summarize_tests", "inspect_docs", "research_topic", "run_analysis", "propose_patch"}
 _DELEGATION_FORBIDDEN_TOOL_PATTERNS = ["write", "edit", "create", "delete", "commit", "push", "bash", "shell"]
 
 

@@ -136,6 +136,22 @@ Interaction channel (R2):
   channel and drains inbound commands (approve/kill/ask/note). Reporting is
   infrastructure-level: it records no WillState and burns no existence budget.
 
+Patch drafting (R1; 2026-07-03):
+
+- `DelegationKind.PROPOSE_PATCH` is allowed by the gate; the worker still may
+  not write — it returns a unified diff as TEXT through the same governed
+  chain (gate → existence budget → harness → secret scan).
+- `yizhi/engine/patches.py`: deterministic diff validation (real unified-diff
+  shape, repo-relative paths only, protected paths untouched — .git/, .yizhi/,
+  config files, data/delegation/ —, no credential material in added lines,
+  bounded size/file-count) and artifact archive under `data/delegation/`
+  (git-ignored), referenced from `DelegationReport.artifacts`.
+- Entry points: `will patch propose --instruction ... --cwd yizhi` and chat's
+  `/patch <instruction>`. Nothing applies a patch: review with
+  `git apply --check <artifact>`; apply stays manual (R4 later).
+- The offline suite forces `YIZHI_DELEGATION_ENABLED=0` (conftest) so an
+  open local delegation gate can never start subprocesses under pytest.
+
 Chat entry + native Anthropic provider (2026-07-03):
 
 - `will chat` is the interactive dialogue entry (R2 made live): bare text is

@@ -473,7 +473,7 @@ class DelegationKind(StrEnum):
     INSPECT_DOCS = "inspect_docs"
     RESEARCH_TOPIC = "research_topic"  # W2: read-only research; the harness returns text, never writes
     RUN_ANALYSIS = "run_analysis"      # W2: read-only analysis over local data; same no-write contract
-    PROPOSE_PATCH = "propose_patch"   # R1; defined now but denied by the R0 read-only gate
+    PROPOSE_PATCH = "propose_patch"    # R1: the harness returns a unified diff as TEXT; validated + archived here, never applied
 
 
 class DelegationTask(YizhiModel):
