@@ -29,4 +29,14 @@ enabled = false              # manual gate; flip to true to allow harness runs
 harness = "claude"           # claude | codex
 command = ""                 # CLI entrypoint, e.g. "claude"; empty = inactive
 root = ""                    # restricted root the harness may run in, e.g. the repo path
-request_timeout = 300.0      # seconds per delegated task run
+request_timeout = 600.0      # seconds per delegated task run (research-grade)
+
+# Channel: how `will serve` / `will report` reach you. local_inbox (offline
+# JSONL files) is the default; switch kind to "telegram" and fill the token
+# (via @BotFather) + chat id to get reports and send commands from your phone.
+[channel]
+enabled = false
+kind = "local_inbox"         # local_inbox | telegram
+root = ".yizhi/channel"
+telegram_token = ""
+telegram_chat_id = ""

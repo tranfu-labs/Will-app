@@ -271,6 +271,47 @@ def cmd_report(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_serve(args: argparse.Namespace) -> int:
+    """R3 resident daemon: poll channel -> bounded governed steps -> report -> sleep.
+    Budget halt is a low-power wait (notify once, keep listening), never an exit.
+    Run under tmux/systemd for real residency; --max-ticks bounds a smoke."""
+    from yizhi.engine.daemon import run_resident
+
+    db_path = init_db(args.db)
+    state = load_or_create_state(db_path)
+    if args.vision:
+        state.vision = args.vision
+    env = environment_from_name(
+        args.env,
+        args.root,
+        db_path=db_path,
+        campaign_id=getattr(args, "campaign_id", None),
+        worker=getattr(args, "worker", "fake"),
+        state=state,
+    )
+    config = load_channel_config()
+    if args.channel_root:
+        config = replace(config, root=args.channel_root)
+    channel = make_channel(config)
+
+    def on_tick(n: int, st: WillState) -> None:
+        print(f"tick {n:>4}: budget={st.budget.balance:.1f} halted={st.budget.halted} loops={st.loop_count}")
+
+    print(f"will serve — env={args.env} channel={channel.name} interval={args.tick_interval}s (Ctrl-C 停止)")
+    outcome = run_resident(
+        env,
+        state,
+        db_path,
+        channel=channel,
+        tick_interval=args.tick_interval,
+        max_steps_per_tick=args.max_steps_per_tick,
+        max_ticks=args.max_ticks,
+        on_tick=on_tick,
+    )
+    _print_kv({"ticks": outcome.ticks, "steps": outcome.steps, "stop": outcome.stop_reason})
+    return 0
+
+
 def cmd_serve_web(args: argparse.Namespace) -> int:
     """Serve the read-only web panel (progress, task history, approvals).
 
@@ -715,6 +756,18 @@ def build_parser() -> argparse.ArgumentParser:
     patch_propose_parser.add_argument("--instruction", required=True, help="What the patch should change")
     patch_propose_parser.add_argument("--cwd", default=".", help="Restricted in-repo directory the worker may read (default: repo root, so diff paths are root-relative)")
     patch_propose_parser.set_defaults(func=cmd_patch_propose)
+
+    serve_parser = subparsers.add_parser("serve", help="R3 resident daemon: channel-driven governed residency")
+    serve_parser.add_argument("--env", choices=["self", "self_repo", "arbbot", "campaign"], default="campaign")
+    serve_parser.add_argument("--campaign-id", default="btc-mvp", help="Campaign id for --env campaign")
+    serve_parser.add_argument("--worker", default="fake", help="Campaign worker (fake/claude/codex)")
+    serve_parser.add_argument("--root", default=None)
+    serve_parser.add_argument("--vision", default=None, help="Seed/replace WillState.vision before residency")
+    serve_parser.add_argument("--tick-interval", type=float, default=60.0, help="Seconds between ticks")
+    serve_parser.add_argument("--max-steps-per-tick", type=int, default=3)
+    serve_parser.add_argument("--max-ticks", type=int, default=None, help="Bound for smokes; default runs until Ctrl-C")
+    serve_parser.add_argument("--channel-root", default=None, help="LocalInbox directory override")
+    serve_parser.set_defaults(func=cmd_serve)
 
     campaign_revisit_parser = campaign_subparsers.add_parser("revisit", help="Revisit a campaign stage")
     campaign_revisit_parser.add_argument("--id", required=True, help="Campaign id")

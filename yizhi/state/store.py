@@ -91,6 +91,7 @@ def list_events(
     limit: int | None = None,
     event_type: str | None = None,
     newest_first: bool = False,
+    after_rowid: int | None = None,
 ) -> list[dict[str, Any]]:
     init_db(path)
     where: list[str] = []
@@ -104,7 +105,12 @@ def list_events(
     if aggregate_id is not None:
         where.append("aggregate_id = ?")
         params.append(aggregate_id)
-    sql = "SELECT * FROM events"
+    if after_rowid is not None:
+        # Incremental consumers (the resident daemon's report cursor) read
+        # only events appended after their last position.
+        where.append("rowid > ?")
+        params.append(after_rowid)
+    sql = "SELECT rowid, * FROM events"
     if where:
         sql += " WHERE " + " AND ".join(where)
     sql += " ORDER BY ts DESC" if newest_first else " ORDER BY ts ASC"

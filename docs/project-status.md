@@ -136,6 +136,26 @@ Interaction channel (R2):
   channel and drains inbound commands (approve/kill/ask/note). Reporting is
   infrastructure-level: it records no WillState and burns no existence budget.
 
+Resident daemon (R3; 2026-07-03):
+
+- `yizhi/engine/daemon.py` `run_resident`: each tick runs a bounded burst of
+  governed steps via `run_until` (which drains the channel inbox — human
+  vision/kill/notes/asks wake and steer the will), then pushes the burst's
+  reportable events to the channel incrementally (rowid cursor on
+  `list_events(after_rowid=...)`; nothing re-sent), then sleeps.
+- Budget halted is a LOW-POWER WAIT, not an exit: one alert, then keep
+  draining the channel (governance commands still apply; asks are answered
+  from state); no steps run, nothing auto-refills.
+- `will serve --env campaign --campaign-id ... [--worker claude]
+  [--tick-interval N] [--max-ticks N]`: unbounded until Ctrl-C by default;
+  smokes pass --max-ticks. Run under tmux/systemd for real residency.
+- Channel messages are human-readable (deliverable: stage/schema/verdict/
+  artifact; campaign: id/status/cursor); DELIVERABLE_ACCEPTED/REJECTED and
+  CAMPAIGN_COMPLETED joined the reportable set.
+- Telegram is config-only away: `[channel] kind = "telegram"` + bot token +
+  chat id (see will.config.example.toml); the offline default stays
+  local_inbox. Real Telegram smoke is a manual gate (needs a token).
+
 Patch drafting (R1; 2026-07-03):
 
 - `DelegationKind.PROPOSE_PATCH` is allowed by the gate; the worker still may

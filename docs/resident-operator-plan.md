@@ -1,6 +1,6 @@
 # Will 常驻自主工程体执行方案(Resident Autonomous Operator)
 
-状态:Proposed plan(2026-06);**R0、R2 已实现(2026-06-30),R1 已实现(2026-07-03,worker 只回 diff 文本、确定性校验+归档、绝不 apply),R3/R4 仍未实现**。本文定方案与接缝,除 R0/R2 外不声称已落地。配套 [adr-001-build-rent-port.md](adr-001-build-rent-port.md)、[adr-002-pi-agent-delegated-execution.md](adr-002-pi-agent-delegated-execution.md)、[will-engine-production-roadmap.md](will-engine-production-roadmap.md)。
+状态:Proposed plan(2026-06);**R0、R2 已实现(2026-06-30),R1、R3 已实现(2026-07-03——R1: worker 只回 diff 文本、确定性校验+归档、绝不 apply;R3: `will serve` 常驻 daemon,渠道驱动、预算停=低功耗等待、增量事件推送),R4 仍未实现**。本文定方案与接缝,除 R0/R2 外不声称已落地。配套 [adr-001-build-rent-port.md](adr-001-build-rent-port.md)、[adr-002-pi-agent-delegated-execution.md](adr-002-pi-agent-delegated-execution.md)、[will-engine-production-roadmap.md](will-engine-production-roadmap.md)。
 
 本文把"yizhi 从本地 CLI 单步治理回路,演进为**常驻服务器、可受治理地委派写代码、通过单一渠道与人交互**的自主工程体"这条形态演进线,拆成可执行、带验证闸、默认安全的阶段。
 
@@ -50,7 +50,7 @@
 | **R0** ✅ | 委派只读分析 MVP(**已实现 2026-06-30**) | 低(read-only) | 默认禁,显式启用 |
 | **R1** ✅ | 委派草拟 patch artifact(不 apply,**已实现 2026-07-03**) | 低-中(worker 零写,diff 即文本) | 手动闸(delegation config) |
 | **R2** ✅ | 交互层 MVP(单渠道,**已实现 2026-06-30**) | 中(对外通信) | 默认本地 inbox |
-| **R3** | 常驻 daemon + 调度 | 中(长期运行) | 默认禁 |
+| **R3** ✅ | 常驻 daemon(`will serve`,**已实现 2026-07-03**) | 中(长期运行) | 有界 smoke 默认;常驻由人启动 |
 | **R4** | 受治理 apply + 写代码闭环 | 高(self_modify / external_write) | 默认禁,每次人审 |
 
 ### R0 — 委派只读分析 MVP  ✅ Implemented(2026-06-30)

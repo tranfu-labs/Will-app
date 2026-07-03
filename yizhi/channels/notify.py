@@ -22,8 +22,11 @@ _REPORTABLE: dict[str, MessageKind] = {
     EventType.JUDGMENT_RENDERED.value: MessageKind.REPORT,
     EventType.DELEGATION_COMPLETED.value: MessageKind.REPORT,
     EventType.GOAL_SET.value: MessageKind.REPORT,
+    EventType.DELIVERABLE_ACCEPTED.value: MessageKind.REPORT,
+    EventType.CAMPAIGN_COMPLETED.value: MessageKind.REPORT,
     EventType.BUDGET_HALTED.value: MessageKind.ALERT,
     EventType.DELEGATION_FAILED.value: MessageKind.ALERT,
+    EventType.DELIVERABLE_REJECTED.value: MessageKind.ALERT,
     EventType.ACTION_FAILED.value: MessageKind.ALERT,
 }
 
@@ -33,6 +36,19 @@ _BODY_KEYS = ("verdict", "subject", "reason", "summary", "title", "balance", "de
 def _body(payload: object) -> str:
     if not isinstance(payload, dict):
         return str(payload)[:300]
+    # Campaign-shaped payloads: surface the human-relevant facts, not a state dump.
+    if "deliverable" in payload and isinstance(payload["deliverable"], dict):
+        deliverable = payload["deliverable"]
+        return (
+            f"stage={deliverable.get('stage_id')}; schema={deliverable.get('schema_name')}; "
+            f"verdict={deliverable.get('verdict')}; artifact={deliverable.get('artifact_path')}"
+        )
+    if "campaign" in payload and isinstance(payload["campaign"], dict):
+        campaign = payload["campaign"]
+        return (
+            f"campaign={campaign.get('id')}; status={campaign.get('status')}; "
+            f"cursor={campaign.get('cursor')}/{len(campaign.get('stages') or [])}"
+        )
     parts = [f"{key}={payload[key]}" for key in _BODY_KEYS if key in payload]
     return "; ".join(parts) if parts else json.dumps(payload, ensure_ascii=False)[:300]
 

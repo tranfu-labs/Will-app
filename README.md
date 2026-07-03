@@ -163,6 +163,23 @@ export ANTHROPIC_API_KEY=...
 YIZHI_LLM_ENABLED=1 YIZHI_LLM_PROVIDER=anthropic YIZHI_LLM_MODEL=claude-sonnet-5 will chat
 ```
 
+### Resident Daemon (serve)
+
+`will serve` is R3 residency: each tick runs a bounded burst of governed
+steps (the channel inbox is drained every step, so a human can re-vision,
+kill the goal, or ask questions from Telegram/the inbox file), then pushes
+reportable events (deliverable acceptances, judgments, campaign completion,
+alerts) to the channel, then sleeps. A halted budget is a low-power wait —
+one alert, still listening — never an auto-refill.
+
+```bash
+will campaign create-btc && will campaign adopt --id btc-mvp
+will serve --campaign-id btc-mvp --worker claude --tick-interval 60   # Ctrl-C to stop
+```
+
+Point `[channel]` at Telegram (bot token + chat id) to get reports and send
+commands from your phone; the offline default is a local inbox file.
+
 ### Web Panel
 
 A read-only observability panel shows live progress (goal, plan cursor, budget),
