@@ -144,16 +144,85 @@ class LiteLLMClient:
         return parsed
 
 
+class AnthropicClient:
+    """Claude-backed client speaking the Anthropic Messages API directly over
+    stdlib urllib — zero new dependency (the TelegramChannel precedent). The
+    same strict boundary as every LLMClient: it only *proposes* a JSON object;
+    walls, budget, and memory are downstream. Anthropic has no response_format
+    parameter, so JSON is enforced by the callers' system prompts and a
+    tolerant parse (strip a whole-body code fence); anything else raises
+    LLMError → deterministic fallback."""
+
+    DEFAULT_BASE_URL = "https://api.anthropic.com"
+    API_VERSION = "2023-06-01"
+
+    def __init__(self, config: LLMConfig, transport=None) -> None:
+        self.config = config
+        self.transport = transport or self._http_post  # injectable for offline tests
+        self.total_tokens = 0
+        self.call_count = 0
+
+    def _http_post(self, url: str, body: bytes, headers: dict) -> dict:
+        import urllib.request
+
+        request = urllib.request.Request(url, data=body, headers=headers, method="POST")
+        with urllib.request.urlopen(request, timeout=self.config.request_timeout) as response:
+            return json.loads(response.read().decode("utf-8"))
+
+    @staticmethod
+    def _strip_fence(text: str) -> str:
+        stripped = text.strip()
+        if stripped.startswith("```") and stripped.endswith("```"):
+            lines = stripped.splitlines()
+            if len(lines) >= 2:
+                return "\n".join(lines[1:-1]).strip()
+        return stripped
+
+    def complete_json(self, system: str, user: str) -> dict:
+        base = (self.config.base_url or self.DEFAULT_BASE_URL).rstrip("/")
+        payload = {
+            "model": self.config.model,
+            "max_tokens": self.config.max_output_tokens,
+            "system": system,
+            "messages": [{"role": "user", "content": user}],
+        }
+        headers = {
+            "content-type": "application/json",
+            "x-api-key": self.config.api_key,
+            "anthropic-version": self.API_VERSION,
+        }
+        try:
+            data = self.transport(
+                f"{base}/v1/messages",
+                json.dumps(payload).encode("utf-8"),
+                headers,
+            )
+            blocks = data.get("content") or []
+            text = "".join(b.get("text", "") for b in blocks if b.get("type") == "text")
+            parsed = json.loads(self._strip_fence(text))
+            self.call_count += 1
+            usage = data.get("usage") or {}
+            self.total_tokens += int(usage.get("input_tokens", 0)) + int(usage.get("output_tokens", 0))
+        except Exception as exc:  # network, auth, parse — all degrade
+            raise LLMError(str(exc)) from exc
+        if not isinstance(parsed, dict):
+            raise LLMError(f"expected a JSON object, got {type(parsed).__name__}")
+        return parsed
+
+
 def load_llm(config: LLMConfig | None = None) -> LLMClient | None:
     """Return a ready LLM client, or None when the engine is off (the default).
     None means the loop uses the deterministic path — no network, no key.
 
-    `provider == "openai"` uses the direct OpenAI client; ANY OTHER provider
-    (anthropic/gemini/ollama/…) is served by LiteLLMClient, so yizhi is multi-LLM
-    without changing the LLMClient Protocol or the governed core."""
+    `provider == "openai"` uses the direct OpenAI client; `provider ==
+    "anthropic"` uses the native stdlib AnthropicClient (no extra install);
+    any other provider (gemini/ollama/…) is served by LiteLLMClient, so yizhi
+    is multi-LLM without changing the LLMClient Protocol or the governed core."""
     config = config or load_llm_config()
     if not config.active:
         return None
     if config.provider == "openai":
         return OpenAILLM(config)
+    if config.provider == "anthropic":
+        return AnthropicClient(config)
     return LiteLLMClient(config)

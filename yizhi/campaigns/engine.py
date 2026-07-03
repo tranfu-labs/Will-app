@@ -2,16 +2,17 @@
 
 from __future__ import annotations
 
-import json
 from dataclasses import dataclass
 from pathlib import Path
 
+from yizhi.campaigns.executor import TaskRunExecutor, resolve_executor
 from yizhi.campaigns.schemas import (
     Campaign,
     CampaignStatus,
     Deliverable,
     DeliverableVerdict,
     HumanStatus,
+    NetworkPolicy,
     StageStatus,
     TaskRun,
     TaskRunKind,
@@ -19,7 +20,7 @@ from yizhi.campaigns.schemas import (
 )
 from yizhi.campaigns.store import append_campaign_event, save_taskrun_requested
 from yizhi.campaigns.validators import validate_artifact
-from yizhi.core.schemas import EventType
+from yizhi.core.schemas import EventType, ExistenceBudget
 from yizhi.core.time import utc_now_iso
 
 
@@ -31,51 +32,15 @@ class CampaignTickResult:
     task_run_id: str | None = None
     deliverable_id: str | None = None
     message: str = ""
+    # ExistenceBudget after an executor that spends the will's money; None if
+    # the tick was free. The caller writes it back to WillState.
+    budget_after: ExistenceBudget | None = None
 
 
 def _active_stage(campaign: Campaign):
     if campaign.cursor >= len(campaign.stages):
         return None
     return campaign.stages[campaign.cursor]
-
-
-def _stage_workspace(campaign: Campaign, stage_id: str) -> Path:
-    return Path(campaign.workspace_root) / stage_id
-
-
-def _task_workspace(campaign: Campaign, stage_id: str, task_id: str) -> Path:
-    return _stage_workspace(campaign, stage_id) / task_id
-
-
-def _fake_artifact(campaign: Campaign, task: TaskRun) -> tuple[str, str]:
-    stage = next(s for s in campaign.stages if s.id == task.stage_id)
-    stage_dir = _task_workspace(campaign, stage.id, task.id)
-    stage_dir.mkdir(parents=True, exist_ok=True)
-    artifact_path = stage_dir / stage.artifact_spec.filename
-    meta_path = stage_dir / (stage.artifact_spec.meta_filename or f"{artifact_path.name}.meta.json")
-    revision_note = f"\n\nrevision_notes:\n" + "\n".join(f"- {n}" for n in stage.revision_notes) if stage.revision_notes else ""
-    lines = [
-        f"# {stage.title}",
-        "",
-        f"campaign: {campaign.id}",
-        f"stage: {stage.id}",
-        f"objective: {stage.objective}",
-        "",
-        "This is a deterministic W1 fake artifact. It proves the campaign harness, not real BTC research.",
-        revision_note,
-    ]
-    artifact_path.write_text("\n".join(lines).strip() + "\n")
-    meta = {
-        "schema": stage.artifact_spec.schema_name,
-        "title": stage.title,
-        "sections": stage.artifact_spec.required_sections,
-        "sources": [],
-        "generated_by": "fake",
-        "stage_id": stage.id,
-        "task_run_id": task.id,
-    }
-    meta_path.write_text(json.dumps(meta, ensure_ascii=False, sort_keys=True, indent=2) + "\n")
-    return str(artifact_path), str(meta_path)
 
 
 def _start_stage(db_path: str | Path, campaign: Campaign) -> None:
@@ -93,7 +58,27 @@ def _start_stage(db_path: str | Path, campaign: Campaign) -> None:
         )
 
 
-def campaign_tick(db_path: str | Path, campaign: Campaign, *, worker: str = "fake") -> CampaignTickResult:
+def _task_capabilities(kind: TaskRunKind) -> tuple[NetworkPolicy, list[str]]:
+    """Campaign-side capability gate: what a task run of this kind may touch.
+
+    research_topic gets read tools plus web search (the worker still can't
+    write — the executor materializes artifacts); run_analysis is local read
+    only; backtest runs in-process and needs no worker tools at all."""
+    if kind == TaskRunKind.RESEARCH_TOPIC:
+        return NetworkPolicy(allow_network_read=True), ["Read", "Grep", "Glob", "WebSearch", "WebFetch"]
+    if kind in (TaskRunKind.RUN_ANALYSIS, TaskRunKind.DRAFT_ARTIFACT):
+        return NetworkPolicy(), ["Read", "Grep", "Glob"]
+    return NetworkPolicy(), []
+
+
+def campaign_tick(
+    db_path: str | Path,
+    campaign: Campaign,
+    *,
+    worker: str = "fake",
+    executor: TaskRunExecutor | None = None,
+    budget: ExistenceBudget | None = None,
+) -> CampaignTickResult:
     if campaign.status != CampaignStatus.ACTIVE:
         return CampaignTickResult(campaign, "not_active", message=f"campaign is {campaign.status}")
     stage = _active_stage(campaign)
@@ -119,6 +104,7 @@ def campaign_tick(db_path: str | Path, campaign: Campaign, *, worker: str = "fak
 
     _start_stage(db_path, campaign)
     kind = stage.allowed_task_kinds[0] if stage.allowed_task_kinds else TaskRunKind.RESEARCH_TOPIC
+    network_policy, allowed_tools = _task_capabilities(kind)
     task = TaskRun(
         campaign_id=campaign.id,
         stage_id=stage.id,
@@ -126,15 +112,18 @@ def campaign_tick(db_path: str | Path, campaign: Campaign, *, worker: str = "fak
         instruction=f"{stage.title}: {stage.objective}",
         worker=worker,
         cwd=campaign.workspace_root,
-        allowed_tools=[],
+        allowed_tools=allowed_tools,
+        network_policy=network_policy,
     )
     save_taskrun_requested(db_path, campaign.id, task)
     campaign.budget.task_runs_used += 1
     campaign.budget.worker_cost_used += task.budget.cost
 
-    if worker != "fake":
+    if executor is None:
+        executor = resolve_executor(worker, db_path=db_path, budget=budget)
+    if executor is None:
         task.status = TaskRunStatus.DENIED
-        task.error = "W1 only allows the deterministic fake worker"
+        task.error = f"no executor available for worker '{worker}'"
         append_campaign_event(
             db_path,
             EventType.TASKRUN_FAILED,
@@ -145,11 +134,30 @@ def campaign_tick(db_path: str | Path, campaign: Campaign, *, worker: str = "fak
         )
         return CampaignTickResult(campaign, "task_denied", stage_id=stage.id, task_run_id=task.id, message=task.error)
 
-    artifact_path, meta_path = _fake_artifact(campaign, task)
+    outcome = executor.execute(campaign, stage, task)
+    if not outcome.ok:
+        task.status = TaskRunStatus.FAILED
+        task.error = outcome.error or "task run failed"
+        task.trace_ref = outcome.trace_ref
+        task.summary = outcome.summary
+        append_campaign_event(
+            db_path,
+            EventType.TASKRUN_FAILED,
+            campaign.id,
+            task,
+            aggregate_type="taskrun",
+            aggregate_id=task.id,
+        )
+        return CampaignTickResult(
+            campaign, "task_failed", stage_id=stage.id, task_run_id=task.id,
+            message=task.error, budget_after=outcome.budget_after,
+        )
+
+    artifact_path, meta_path = outcome.artifact_path, outcome.meta_path
     task.status = TaskRunStatus.COMPLETED
     task.artifact_refs = [artifact_path, meta_path]
-    task.trace_ref = f"fake:{task.id}"
-    task.summary = "fake worker produced deterministic W1 artifact"
+    task.trace_ref = outcome.trace_ref or f"{worker}:{task.id}"
+    task.summary = outcome.summary
     append_campaign_event(
         db_path,
         EventType.TASKRUN_COMPLETED,
@@ -197,7 +205,10 @@ def campaign_tick(db_path: str | Path, campaign: Campaign, *, worker: str = "fak
             aggregate_type="deliverable",
             aggregate_id=deliverable.id,
         )
-        return CampaignTickResult(campaign, "deliverable_rejected", stage.id, task.id, deliverable.id, "; ".join(validation["errors"]))
+        return CampaignTickResult(
+            campaign, "deliverable_rejected", stage.id, task.id, deliverable.id,
+            "; ".join(validation["errors"]), budget_after=outcome.budget_after,
+        )
 
     if stage.deliverable_id:
         append_campaign_event(
@@ -209,6 +220,7 @@ def campaign_tick(db_path: str | Path, campaign: Campaign, *, worker: str = "fak
             aggregate_id=stage.deliverable_id,
         )
     stage.deliverable_id = deliverable.id
+    stage.artifact_path = artifact_path
     stage.status = StageStatus.ACCEPTED
     append_campaign_event(
         db_path,
@@ -234,7 +246,10 @@ def campaign_tick(db_path: str | Path, campaign: Campaign, *, worker: str = "fak
         campaign.id,
         {"campaign": campaign.model_dump(), "from_stage_id": stage.id, "cursor": campaign.cursor},
     )
-    return CampaignTickResult(campaign, status, stage.id, task.id, deliverable.id, "stage accepted")
+    return CampaignTickResult(
+        campaign, status, stage.id, task.id, deliverable.id, "stage accepted",
+        budget_after=outcome.budget_after,
+    )
 
 
 def revisit_stage(db_path: str | Path, campaign: Campaign, *, stage_id: str, note: str) -> Campaign:
@@ -261,6 +276,7 @@ def revisit_stage(db_path: str | Path, campaign: Campaign, *, stage_id: str, not
         if index == target_index:
             stage.revision_notes.append(note)
         stage.deliverable_id = None
+        stage.artifact_path = None
     campaign.updated_at = utc_now_iso()
     append_campaign_event(
         db_path,

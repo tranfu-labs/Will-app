@@ -293,11 +293,16 @@ def test_load_llm_is_none_when_disabled():
 
 
 def test_load_llm_routes_non_openai_to_litellm():
-    # Multi-LLM: any non-openai provider is served by LiteLLMClient behind the same
-    # Protocol. Construction is offline (litellm is lazy-imported only in complete_json).
+    # Multi-LLM routing: anthropic is now served NATIVELY (stdlib client, no extra
+    # install); other non-openai providers still go through LiteLLMClient behind
+    # the same Protocol. Construction is offline in all cases.
+    from yizhi.engine.llm import AnthropicClient
+
     client = load_llm(LLMConfig(enabled=True, provider="anthropic", api_key="sk-x", model="claude-sonnet-4-6"))
-    assert isinstance(client, LiteLLMClient)
-    assert client._model_id() == "anthropic/claude-sonnet-4-6"          # provider/model
+    assert isinstance(client, AnthropicClient)
+    gem_client = load_llm(LLMConfig(enabled=True, provider="gemini", api_key="k", model="gemini-3-flash"))
+    assert isinstance(gem_client, LiteLLMClient)
+    assert gem_client._model_id() == "gemini/gemini-3-flash"            # provider/model
     # a fully-qualified id is respected as-is
     gem = LiteLLMClient(LLMConfig(enabled=True, provider="gemini", model="gemini/gemini-3-flash"))
     assert gem._model_id() == "gemini/gemini-3-flash"
@@ -326,8 +331,12 @@ def test_load_llm_returns_openai_client_when_active():
 
 
 def test_load_llm_non_openai_now_served_by_litellm():
-    # Was: non-openai providers returned None. Now they route to LiteLLMClient (multi-LLM).
-    assert isinstance(load_llm(LLMConfig(enabled=True, provider="anthropic", api_key="sk-x", model="m")), LiteLLMClient)
+    # Was: non-openai providers returned None, then all went to LiteLLM. Now:
+    # anthropic is native; the LiteLLM path remains for everything else.
+    from yizhi.engine.llm import AnthropicClient
+
+    assert isinstance(load_llm(LLMConfig(enabled=True, provider="anthropic", api_key="sk-x", model="m")), AnthropicClient)
+    assert isinstance(load_llm(LLMConfig(enabled=True, provider="ollama", api_key="k", model="m")), LiteLLMClient)
 
 
 def test_config_defaults_disabled_when_file_absent(tmp_path):

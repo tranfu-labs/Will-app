@@ -61,6 +61,12 @@ class HumanStatus(StrEnum):
 
 
 class CampaignBudget(YizhiModel):
+    """Per-campaign quotas, not a currency.
+
+    The will's single currency is ExistenceBudget; delegation spends from it.
+    These counters bound how much of the campaign's *allowance* has been used
+    (task runs, revisions) and mirror worker cost for reporting."""
+
     max_stages: int = 8
     max_revisions: int = 8
     max_task_runs: int = 24
@@ -96,15 +102,13 @@ class ArtifactSpec(YizhiModel):
 class AcceptanceGate(YizhiModel):
     required_artifact: bool = True
     required_schema: str
-    forbidden_patterns: list[str] = Field(default_factory=lambda: [
-        "api_key",
-        "apikey",
-        "secret",
-        "private key",
-        "-----BEGIN",
-    ])
+    # Extra project-specific banned substrings. Credential material is caught by
+    # the built-in structural scan in validators.py regardless of this list —
+    # bare keywords like "secret" false-positive on legitimate research prose.
+    forbidden_patterns: list[str] = Field(default_factory=list)
     min_sections: list[str] = Field(default_factory=list)
     require_hash: bool = True
+    require_sources: bool = False
     require_human_approval: bool = False
 
 
@@ -118,6 +122,9 @@ class CampaignStage(YizhiModel):
     acceptance_gate: AcceptanceGate
     status: StageStatus = StageStatus.PENDING
     deliverable_id: str | None = None
+    # Accepted artifact's path, kept on the stage so later stages can read
+    # earlier conclusions (knowledge flows within the campaign).
+    artifact_path: str | None = None
     revision_notes: list[str] = Field(default_factory=list)
 
 

@@ -37,7 +37,11 @@ def _stage(
             meta_filename=filename.removesuffix(".md") + ".meta.json",
             required_sections=sections,
         ),
-        acceptance_gate=AcceptanceGate(required_schema=schema_name, min_sections=sections),
+        acceptance_gate=AcceptanceGate(
+            required_schema=schema_name,
+            min_sections=sections,
+            require_sources=True,
+        ),
     )
 
 
@@ -73,7 +77,7 @@ def build_btc_campaign(
                 kind=TaskRunKind.RESEARCH_TOPIC,
                 schema_name="btc_venues_report_v1",
                 filename="S2_btc_venues.md",
-                sections=["venues", "spot", "perp", "futures", "fees", "liquidity", "api", "risks"],
+                sections=["venues", "spot", "perp", "futures", "fees", "liquidity", "api", "risks", "sources"],
             ),
             _stage(
                 sid="S3",
@@ -83,7 +87,7 @@ def build_btc_campaign(
                 kind=TaskRunKind.RUN_ANALYSIS,
                 schema_name="btc_market_structure_report_v1",
                 filename="S3_btc_market_structure.md",
-                sections=["summary", "instruments", "market_structure", "open_questions"],
+                sections=["summary", "instruments", "market_structure", "open_questions", "sources"],
             ),
             _stage(
                 sid="S4",
@@ -93,7 +97,7 @@ def build_btc_campaign(
                 kind=TaskRunKind.BACKTEST,
                 schema_name="btc_strategy_packet_v1",
                 filename="S4_btc_strategy_packet.md",
-                sections=["strategies", "backtests", "verdicts", "risks", "next_actions"],
+                sections=["strategies", "backtests", "verdicts", "risks", "next_actions", "sources"],
             ),
         ],
     )

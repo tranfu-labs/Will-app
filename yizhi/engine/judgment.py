@@ -73,6 +73,11 @@ def judge_backtest(metrics: dict | None) -> Judgment | None:
     a 100%-win edge. The verdict is grounded purely in the numbers; it cannot be argued with."""
     if not metrics:
         return None
+    # Shape guard: only judge actual backtest metrics. Non-backtest actions
+    # (campaign ticks, delegation reports) carry non-empty metrics of a
+    # different shape and must not be read as a zero-entry backtest.
+    if not any(key in metrics for key in ("n_entered", "n_windows", "total_realized_bps")):
+        return None
     n_entered = float(metrics.get("n_entered", 0) or 0)
     n_windows = float(metrics.get("n_windows", 0) or 0)
     net = float(metrics.get("total_realized_bps", 0) or 0)

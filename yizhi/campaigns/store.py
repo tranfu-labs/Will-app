@@ -73,5 +73,6 @@ def load_campaign(db_path: str | Path, campaign_id: str) -> Campaign | None:
             for stage in campaign.stages:
                 if stage.id == deliverable.stage_id:
                     stage.deliverable_id = deliverable.id
+                    stage.artifact_path = deliverable.artifact_path
                     break
     return campaign

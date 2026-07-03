@@ -32,9 +32,32 @@ from yizhi.core.schemas import (
     PolicyGateResult,
     VerificationResult,
 )
+from yizhi.core.secrets import contains_secret_material
 from yizhi.engine.budget import action_cost, can_afford, spend
 from yizhi.policy.gates import DELEGATION_SENTINEL, run_policy_gate
 from yizhi.state.store import append_event
+
+# Full worker output kept on the report; enough for a long research artifact
+# while still bounding a runaway harness.
+_MAX_OUTPUT_TEXT = 200_000
+
+# Where the real harness's full stdout/stderr is archived (raw_output_ref).
+TRANSCRIPT_DIR = Path(".yizhi/delegation-transcripts")
+
+
+def archive_transcript(task_id: str, stdout: str, stderr: str, *, root: Path | None = None) -> str:
+    """Best-effort archive of the full harness output for post-mortems.
+
+    Returns the path written, or "" if archiving failed — a failed archive must
+    never fail the delegation itself."""
+    try:
+        directory = (root or Path(".")) / TRANSCRIPT_DIR
+        directory.mkdir(parents=True, exist_ok=True)
+        path = directory / f"{task_id}.txt"
+        path.write_text(f"--- stdout ---\n{stdout}\n--- stderr ---\n{stderr}\n")
+        return str(path)
+    except (OSError, ValueError):
+        return ""
 
 
 @runtime_checkable
@@ -45,9 +68,10 @@ class DelegationClient(Protocol):
 class FakeDelegationClient:
     """Deterministic in-process client for tests and offline runs — never touches a CLI."""
 
-    def __init__(self, ok: bool = True, summary: str = "fake harness analysis") -> None:
+    def __init__(self, ok: bool = True, summary: str = "fake harness analysis", output_text: str = "") -> None:
         self.ok = ok
         self.summary = summary
+        self.output_text = output_text
         self.called = False
         self.last_task: DelegationTask | None = None
 
@@ -58,6 +82,7 @@ class FakeDelegationClient:
             task_id=task.id,
             ok=self.ok,
             summary=self.summary if self.ok else "fake harness failure",
+            output_text=self.output_text if self.ok else "",
             cost_spent=task.cost,
             error=None if self.ok else "harness returned a nonzero status",
         )
@@ -79,13 +104,14 @@ class CliHarnessDelegationClient:
         if self.config.harness == "codex":
             # codex exec is non-interactive; tool restriction is harness-specific.
             return [self.config.command, "exec", task.instruction]
-        # default: Claude Code print mode, restricted to the read-only tool set.
+        # Claude Code print mode, restricted to the read-only tool set. The prompt
+        # goes via stdin: --allowedTools is variadic and swallows a trailing
+        # positional prompt (verified by real-harness smoke, 2026-07-03).
         return [
             self.config.command,
             "--print",
             "--allowedTools",
             ",".join(tools),
-            task.instruction,
         ]
 
     def run(self, task: DelegationTask) -> DelegationReport:
@@ -101,6 +127,7 @@ class CliHarnessDelegationClient:
             completed = subprocess.run(
                 self._build_command(task),
                 cwd=str(cwd),
+                input=task.instruction if self.config.harness != "codex" else None,
                 capture_output=True,
                 text=True,
                 check=False,
@@ -109,12 +136,17 @@ class CliHarnessDelegationClient:
         except Exception as exc:  # noqa: BLE001 - a harness failure must not crash the loop
             return DelegationReport(task_id=task.id, ok=False, summary="harness invocation failed", error=str(exc))
         ok = completed.returncode == 0
+        stdout = (completed.stdout or "").strip()
+        stderr = (completed.stderr or "").strip()
+        transcript = archive_transcript(task.id, stdout, stderr)
         return DelegationReport(
             task_id=task.id,
             ok=ok,
-            summary=(completed.stdout or "").strip()[:4000],
+            summary=stdout[:4000],
+            output_text=stdout[:_MAX_OUTPUT_TEXT],
+            raw_output_ref=transcript,
             cost_spent=task.cost,
-            error=None if ok else (completed.stderr or "").strip()[:1000],
+            error=None if ok else stderr[:1000],
         )
 
 
@@ -144,8 +176,8 @@ class DelegationOutcome:
 
 
 def _forbidden_in_report(report: DelegationReport) -> bool:
-    text = (report.summary + " " + (report.error or "")).lower()
-    return any(p in text for p in ("apikey", "secret", "private key", "-----begin"))
+    text = report.summary + " " + report.output_text + " " + (report.error or "")
+    return contains_secret_material(text)
 
 
 def execute_delegation(

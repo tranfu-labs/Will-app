@@ -4,10 +4,35 @@ from __future__ import annotations
 
 import hashlib
 import json
+import re
 from pathlib import Path
 from typing import Any
 
 from yizhi.campaigns.schemas import AcceptanceGate, ArtifactSpec
+from yizhi.core.secrets import contains_secret_material
+
+_SECTION_HEADING_RE = re.compile(r"^##\s+(.+?)\s*$", re.MULTILINE)
+
+
+def parse_markdown_sections(text: str) -> list[str]:
+    """Normalized `## heading` slugs actually present in the artifact body."""
+    return [match.group(1).strip().lower() for match in _SECTION_HEADING_RE.finditer(text)]
+
+
+def parse_markdown_sources(text: str) -> list[str]:
+    """List items under the `## sources` heading, one source per line."""
+    sources: list[str] = []
+    in_sources = False
+    for line in text.splitlines():
+        heading = _SECTION_HEADING_RE.match(line)
+        if heading:
+            in_sources = heading.group(1).strip().lower() == "sources"
+            continue
+        if in_sources:
+            stripped = line.strip()
+            if stripped.startswith(("- ", "* ")):
+                sources.append(stripped[2:].strip())
+    return sources
 
 
 def sha256_file(path: str | Path) -> str:
@@ -73,6 +98,30 @@ def validate_artifact(
         checks.append("required_sections")
 
     text = artifact.read_text(errors="ignore") if artifact.exists() else ""
+
+    # W2: validate the artifact body, not the worker's self-report — every
+    # required section must exist as a real `## <section>` heading.
+    body_sections = parse_markdown_sections(text)
+    missing_body = [s for s in gate.min_sections if s not in body_sections]
+    if missing_body:
+        errors.append(f"artifact body missing required section headings: {', '.join(missing_body)}")
+    else:
+        checks.append("body_sections")
+
+    if gate.require_sources:
+        if not (metadata.get("sources") or []):
+            errors.append("metadata sources must be non-empty")
+        else:
+            checks.append("sources_present")
+
+    # Built-in, non-optional: structural secret-material scan. Bare keywords
+    # ("secret") false-positive on legitimate research prose, so the scanner
+    # matches credential shapes (assignments, PEM, key ids) — yizhi/core/secrets.py.
+    if contains_secret_material(text):
+        errors.append("artifact contains credential-shaped material")
+    else:
+        checks.append("secret_scan")
+
     lower = text.lower()
     for pattern in gate.forbidden_patterns:
         if pattern.lower() in lower:

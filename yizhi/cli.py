@@ -75,7 +75,14 @@ def cmd_observe(args: argparse.Namespace) -> int:
 def cmd_step(args: argparse.Namespace) -> int:
     db_path = init_db(args.db)
     state = load_or_create_state(db_path)
-    env = environment_from_name(args.env, args.root)
+    env = environment_from_name(
+        args.env,
+        args.root,
+        db_path=db_path,
+        campaign_id=getattr(args, "campaign_id", None),
+        worker=getattr(args, "worker", "fake"),
+        state=state,
+    )
     result = run_step(env, state, db_path)
     _print_kv(
         {
@@ -136,7 +143,14 @@ def cmd_run(args: argparse.Namespace) -> int:
     state = load_or_create_state(db_path)
     if args.vision:
         state.vision = args.vision
-    env = environment_from_name(args.env, args.root)
+    env = environment_from_name(
+        args.env,
+        args.root,
+        db_path=db_path,
+        campaign_id=getattr(args, "campaign_id", None),
+        worker=getattr(args, "worker", "fake"),
+        state=state,
+    )
 
     def on_step(n: int, result: Any, st: WillState) -> None:
         print(f"step {n:>3}: status={result.loop_status} action={result.proposal_id} budget={st.budget.balance:.1f}")
@@ -446,6 +460,71 @@ def cmd_campaign_revisit(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_chat(args: argparse.Namespace) -> int:
+    from yizhi.liaison.chat import run_chat
+
+    db_path = init_db(args.db)
+    return run_chat(
+        db_path,
+        campaign_id=args.campaign_id,
+        worker=args.worker,
+    )
+
+
+def cmd_campaign_adopt(args: argparse.Namespace) -> int:
+    """ADR-004 B2: bind a campaign to the will as its pursued goal.
+
+    The campaign is the source of truth; the plan is its projection — one step
+    per stage, each targeting the governed tick sentinel. After adopting,
+    `will step --env campaign` drives the campaign through the full will loop
+    (memory, budget, judgment) instead of the bare state machine."""
+    from yizhi.core.schemas import Goal, Plan, PlanStep, PlanStepStatus
+    from yizhi.policy.gates import CAMPAIGN_SENTINEL
+    from yizhi.state.store import create_snapshot
+
+    db_path = init_db(args.db)
+    campaign = load_campaign(db_path, args.id)
+    if campaign is None:
+        print(f"campaign not found: {args.id}")
+        return 1
+    state = load_or_create_state(db_path)
+    goal = Goal(
+        title=f"Campaign: {campaign.title}",
+        description=campaign.vision,
+        priority=90,
+        metadata={"campaign_id": campaign.id},
+    )
+    steps = [
+        PlanStep(
+            description=f"{stage.id} {stage.title}: {stage.objective}",
+            target_command=[CAMPAIGN_SENTINEL, "tick", campaign.id],
+            target_title=f"Campaign tick: advance {stage.id} {stage.title}",
+            status=PlanStepStatus.DONE if index < campaign.cursor else PlanStepStatus.PENDING,
+        )
+        for index, stage in enumerate(campaign.stages)
+    ]
+    plan = Plan(goal_id=goal.id, steps=steps, cursor=min(campaign.cursor, len(steps)))
+    state.goals = [goal]
+    state.active_plan = plan
+    append_event(EventType.GOAL_SET, aggregate_type="goal", aggregate_id=goal.id, payload=goal,
+                 correlation_id=campaign.id, path=db_path)
+    append_event(EventType.PLAN_CREATED, aggregate_type="plan", aggregate_id=plan.id, payload=plan,
+                 correlation_id=campaign.id, path=db_path)
+    create_snapshot(state, path=db_path)
+    _print_kv(
+        {
+            "campaign_id": campaign.id,
+            "goal_id": goal.id,
+            "goal": goal.title,
+            "plan_id": plan.id,
+            "plan_steps": len(plan.steps),
+            "plan_cursor": plan.cursor,
+            "next": f"will step --env campaign --campaign-id {campaign.id}",
+        }
+    )
+    return 0
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="will", description="Local governed Will Agent v0")
     parser.add_argument("--db", default=str(DEFAULT_DB_PATH), help="SQLite event store path")
@@ -460,12 +539,16 @@ def build_parser() -> argparse.ArgumentParser:
     observe_parser.set_defaults(func=cmd_observe)
 
     step_parser = subparsers.add_parser("step", help="Run one bounded will loop")
-    step_parser.add_argument("--env", choices=["self", "self_repo", "arbbot"], required=True)
+    step_parser.add_argument("--env", choices=["self", "self_repo", "arbbot", "campaign"], required=True)
+    step_parser.add_argument("--campaign-id", default="btc-mvp", help="Campaign id for --env campaign")
+    step_parser.add_argument("--worker", default="fake", help="Campaign worker for --env campaign (fake/claude/codex)")
     step_parser.add_argument("--root", default=None)
     step_parser.set_defaults(func=cmd_step)
 
     run_parser = subparsers.add_parser("run", help="Run the will loop continuously until a stop condition")
-    run_parser.add_argument("--env", choices=["self", "self_repo", "arbbot"], required=True)
+    run_parser.add_argument("--env", choices=["self", "self_repo", "arbbot", "campaign"], required=True)
+    run_parser.add_argument("--campaign-id", default="btc-mvp", help="Campaign id for --env campaign")
+    run_parser.add_argument("--worker", default="fake", help="Campaign worker for --env campaign (fake/claude/codex)")
     run_parser.add_argument("--root", default=None)
     run_parser.add_argument("--max-steps", type=int, default=50, help="Structural ceiling (always applies)")
     run_parser.add_argument("--vision", default=None, help="Seed/override the standing north-star vision")
@@ -569,12 +652,29 @@ def build_parser() -> argparse.ArgumentParser:
     campaign_run_parser = campaign_subparsers.add_parser("run", help="Run bounded campaign ticks")
     campaign_run_parser.add_argument("--id", required=True, help="Campaign id")
     campaign_run_parser.add_argument("--max-ticks", type=int, default=1, help="Maximum deterministic campaign ticks")
-    campaign_run_parser.add_argument("--worker", default="fake", help="Worker name; W1 only allows fake")
+    campaign_run_parser.add_argument(
+        "--worker",
+        default="fake",
+        help="Worker: fake (deterministic), or claude/codex (real research via manual-gated delegation config)",
+    )
     campaign_run_parser.set_defaults(func=cmd_campaign_run)
 
     campaign_state_parser = campaign_subparsers.add_parser("state", help="Print projected campaign state")
     campaign_state_parser.add_argument("--id", required=True, help="Campaign id")
     campaign_state_parser.set_defaults(func=cmd_campaign_state)
+
+    campaign_adopt_parser = campaign_subparsers.add_parser(
+        "adopt", help="Bind a campaign to the will as its pursued goal (plan projected from stages)"
+    )
+    campaign_adopt_parser.add_argument("--id", required=True, help="Campaign id")
+    campaign_adopt_parser.set_defaults(func=cmd_campaign_adopt)
+
+    chat_parser = subparsers.add_parser(
+        "chat", help="Interactive chat with the will (governed dialogue + /research delegation)"
+    )
+    chat_parser.add_argument("--campaign-id", default=None, help="Chat in a campaign's context (default: adopted campaign, else self)")
+    chat_parser.add_argument("--worker", default="fake", help="Campaign worker for in-chat ticks (fake/claude/codex)")
+    chat_parser.set_defaults(func=cmd_chat)
 
     campaign_revisit_parser = campaign_subparsers.add_parser("revisit", help="Revisit a campaign stage")
     campaign_revisit_parser.add_argument("--id", required=True, help="Campaign id")

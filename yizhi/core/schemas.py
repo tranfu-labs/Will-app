@@ -27,6 +27,7 @@ class EnvironmentName(StrEnum):
     SELF_REPO = "self_repo"
     ARBBOT = "arbbot"
     PI_AGENT = "pi_agent"
+    CAMPAIGN = "campaign"
 
 
 class ActionStatus(StrEnum):
@@ -177,6 +178,9 @@ class Goal(YizhiModel):
     description: str = ""
     priority: int = 50
     active: bool = True
+    # Structured linkage, e.g. {"campaign_id": "btc-mvp"} for an adopted campaign
+    # goal (ADR-004 B2) — the campaign is the source of truth; the plan projects it.
+    metadata: dict[str, Any] = Field(default_factory=dict)
     # Goal lifecycle: a goal is PURSUED to done/abandoned before genesis sets the next one, so the
     # will persistently advances ONE task across loops instead of overwriting it every loop.
     status: GoalStatus = GoalStatus.PURSUING
@@ -467,6 +471,8 @@ class DelegationKind(StrEnum):
     ANALYZE_REPO = "analyze_repo"
     SUMMARIZE_TESTS = "summarize_tests"
     INSPECT_DOCS = "inspect_docs"
+    RESEARCH_TOPIC = "research_topic"  # W2: read-only research; the harness returns text, never writes
+    RUN_ANALYSIS = "run_analysis"      # W2: read-only analysis over local data; same no-write contract
     PROPOSE_PATCH = "propose_patch"   # R1; defined now but denied by the R0 read-only gate
 
 
@@ -487,7 +493,8 @@ class DelegationReport(YizhiModel):
     task_id: str
     ok: bool
     summary: str
-    artifacts: list[str] = Field(default_factory=list)  # paths produced (empty for pure read-only analysis)
-    raw_output_ref: str = ""                            # archive ref to the full harness transcript
+    output_text: str = ""                               # full worker output; artifact-bearing kinds read this
+    artifacts: list[str] = Field(default_factory=list)  # reserved for R1 patch artifacts; always empty in R0
+    raw_output_ref: str = ""                            # archived full-transcript path (delegation-transcripts/)
     cost_spent: float = 0.0
     error: str | None = None

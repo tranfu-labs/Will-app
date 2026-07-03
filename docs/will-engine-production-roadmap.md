@@ -91,8 +91,8 @@ ArbBot 工作面**已就绪**(`backtest_spec`/`build_funding_diff_spec`/calibrat
 | **审议层(脑)** | ① 复杂度分诊 · ② 工作记忆 | ❌0% | |
 | | ③ 涌现推进 | 🟡60% | stall-replan 在;emergent-amend 待做 |
 | | ④ 批判 faculty | 🟡20% | calibration 在;异 LLM critic 待做 |
-| | ⑤ 多 agent / pi worker 委派 | ❌0% | Pydantic AI/pi worker 只是 accepted future seam;当前未实现 runtime/client/environment |
-| | ⑥ 工作层级 project/campaign | 🟡55% | action/plan/goal 在;W1 Campaign/Stage/TaskRun/Deliverable/AcceptanceGate 骨架已建;真实 worker、web campaign 页、BTC 实研未建 |
+| | ⑤ 多 agent / pi worker 委派 | 🟡50% | R0 只读委派已建(CliHarness/policy gate/预算/事件);W2 campaign DelegationTaskRunExecutor 已接;R1 patch/R3 daemon/R4 apply 未建 |
+| | ⑥ 工作层级 project/campaign | 🟡75% | action/plan/goal 在;W1 骨架 + W2 TaskRunExecutor(fake/委派研究/in-process 回测)已建;BTC S1 真实产物已过闸;web campaign 页、全战役实跑复核未建 |
 | **工厂层** | C1 战役调度 🟡30% · C2 在环监控 🟡40% · C5 真钱闸 ❌0% | | scorecard 离线非在环 |
 | **哲学** | D1可失赌注 · D2自创愿景 · D3自我模型 · D4持续思考 | ❌0% | |
 

@@ -11,6 +11,7 @@ dependency. See docs and the plan; the secret never enters git.
 from __future__ import annotations
 
 import os
+import sys
 import tomllib
 from dataclasses import dataclass
 from pathlib import Path
@@ -18,11 +19,22 @@ from pathlib import Path
 DEFAULT_CONFIG_PATH = Path("will.config.toml")
 LEGACY_CONFIG_PATH = Path("yizhi.config.toml")
 
+_warned_legacy_config = False
+
 
 def _resolve_config_path(path: str | Path) -> Path:
-    """Prefer Will's config name, but keep the old yizhi file working."""
+    """Prefer Will's config name, but keep the old yizhi file working (with a
+    one-time deprecation nudge — two config files is a real usage trap)."""
+    global _warned_legacy_config
     config_path = Path(path)
     if config_path == DEFAULT_CONFIG_PATH and not config_path.exists() and LEGACY_CONFIG_PATH.exists():
+        if not _warned_legacy_config:
+            _warned_legacy_config = True
+            print(
+                "note: reading legacy yizhi.config.toml — rename it to will.config.toml "
+                "(the legacy name keeps working for now)",
+                file=sys.stderr,
+            )
         return LEGACY_CONFIG_PATH
     return config_path
 
@@ -86,6 +98,10 @@ def load_llm_config(path: str | Path = DEFAULT_CONFIG_PATH) -> LLMConfig:
         enabled = _as_bool(os.environ["YIZHI_LLM_ENABLED"])
     provider = os.environ.get("YIZHI_LLM_PROVIDER", provider)
     api_key = os.environ.get("OPENAI_API_KEY", api_key)
+    if provider == "anthropic":
+        # Provider-native key wins for the anthropic provider so both keys can
+        # coexist in one environment.
+        api_key = os.environ.get("ANTHROPIC_API_KEY", api_key)
     model = os.environ.get("YIZHI_LLM_MODEL", model)
     base_url = os.environ.get("YIZHI_LLM_BASE_URL", base_url)
 
@@ -130,7 +146,7 @@ class DelegationConfig:
     harness: str = "claude"                                       # claude | codex | ...
     command: str = ""                                             # CLI entrypoint; empty => inactive
     default_allowed_tools: tuple[str, ...] = ("Read", "Grep", "Glob")
-    request_timeout: float = 300.0
+    request_timeout: float = 600.0                                # research-grade runs need minutes
     root: str = ""                                                # restricted root the harness may run in
 
     @property

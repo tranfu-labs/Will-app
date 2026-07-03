@@ -136,6 +136,24 @@ Interaction channel (R2):
   channel and drains inbound commands (approve/kill/ask/note). Reporting is
   infrastructure-level: it records no WillState and burns no existence budget.
 
+Chat entry + native Anthropic provider (2026-07-03):
+
+- `will chat` is the interactive dialogue entry (R2 made live): bare text is
+  an `ask` that enters `run_step` as a high-salience observation (campaign
+  context when adopted/--campaign-id, else self); answers are composed from
+  the will's own state (LLM opt-in, deterministic receipt fallback);
+  `vision <text>` / `kill goal` apply governance with semantic events;
+  `/research <topic>` runs one governed read-only delegation and prints the
+  report; `/status` is free (no step). IO is injectable — the offline suite
+  drives full conversations.
+- `AnthropicClient` serves `provider = "anthropic"` natively over stdlib
+  urllib (zero new dependency, TelegramChannel precedent) behind the same
+  `LLMClient` Protocol; JSON is enforced by prompt + tolerant parse; failures
+  raise LLMError → deterministic fallback. `ANTHROPIC_API_KEY` overlays the
+  file key for the anthropic provider. LiteLLM remains the route for other
+  providers. NOTE: the native path is offline-tested with a fake transport;
+  a real-key smoke has not been run yet.
+
 Web panel (observability; 2026-07-03):
 
 - `yizhi/web/` serves a read-only panel over the event store: live now-view
@@ -154,21 +172,75 @@ Web panel (observability; 2026-07-03):
   direction); the SSE event naming keeps a later adapter cheap. See
   `docs/web-panel.md`.
 
-Campaign harness (W1; BTC MVP foundation):
+Campaign harness (W1 + W2; BTC research spine):
 
 - `yizhi/campaigns/` defines the deterministic long-horizon project harness:
   `Campaign`, `CampaignStage`, `TaskRun`, `Deliverable`, `ArtifactSpec`,
   `AcceptanceGate`, `CampaignBudget`, and `TaskBudget`.
 - `campaign create-btc` creates the BTC MVP campaign template with S1-S4
-  stages, but W1 artifacts are deterministic fake artifacts; no real BTC
-  research, no LLM, no network, and no K-line/backtest work is claimed.
+  stages; every stage requires real `## <section>` headings and a non-empty
+  sources list (`AcceptanceGate.require_sources`).
 - `campaign run --max-ticks N` advances the campaign through bounded ticks:
-  stage start -> fake task run -> artifact/meta write under `data/campaigns/<id>/`
+  stage start -> task run -> artifact/meta write under `data/campaigns/<id>/`
   -> validator -> deliverable acceptance -> cursor advance.
 - `campaign revisit` records `CAMPAIGN_REVISED`, rewinds the cursor to the target
   stage, and supersedes prior deliverables without deleting files or events.
-- W1 completion means the BTC MVP foundation is in place; BTC MVP progress is
-  approximately 25%, not a completed BTC research campaign.
+- W2 TaskRunExecutor (`yizhi/campaigns/executor.py`): the tick engine takes an
+  injected executor instead of a hardwired fake worker.
+  - `FakeTaskRunExecutor`: deterministic offline worker (CI default); emits the
+    same section headings and a placeholder source so it passes the same gate.
+  - `DelegationTaskRunExecutor`: S1-S3 research/analysis through the governed
+    R0 delegation path (policy gate -> existence budget -> harness run ->
+    secret-scan verification -> `DELEGATION_*` events). The worker only
+    returns Markdown text; the executor materializes artifact + meta inside
+    the campaign workspace, so R0 read-only stays intact. Meta sections and
+    sources are parsed from the artifact body, never taken from worker
+    self-report.
+  - `BacktestTaskRunExecutor`: S4 renders the strategy packet from the
+    deterministic fundarb promotion packet; no LLM touches the numbers.
+  - `KindRoutingExecutor` routes by `TaskRunKind` (BACKTEST in-process, the
+    rest delegated); `resolve_executor` maps CLI worker names (`fake`,
+    `claude`, `codex`).
+- Campaign-side capability gate (`_task_capabilities`): research_topic gets
+  read tools + WebSearch/WebFetch (network read allowed); run_analysis gets
+  local read tools only; backtest gets no worker tools.
+- `campaign run --worker claude` is manual-gated by `DelegationConfig`
+  (config file `[delegation]` or `YIZHI_DELEGATION_*` env vars); disabled
+  config fails the task run with an explicit message instead of running.
+
+Campaign autonomy (ADR-004 B1+B2; 2026-07-03):
+
+- `EnvironmentName.CAMPAIGN` + `yizhi/environments/campaign.py`: the campaign
+  harness is an ActionEnvironment. observe() returns cursor/stage/quota facts;
+  the action menu is exactly three gated sentinels (`yizhi:campaign` tick /
+  revisit / report). The policy gate structurally requires evidence on revisit.
+- `campaign adopt --id <cid>` binds the campaign as the will's PURSUING goal
+  (`goal.metadata.campaign_id`) and projects the plan from stages (one step
+  per stage, targeting the tick sentinel); GOAL_SET/PLAN_CREATED + snapshot.
+- `will step --env campaign --campaign-id <cid>` drives a campaign tick
+  through the FULL will loop: memory encoding, budget spend, policy gate,
+  verification, finding, plan advance, snapshot.
+- Tiered value evidence: a deliverable passing the deterministic acceptance
+  gate is a structural fact — it enters the memory ledger as a deterministic
+  `campaign:deliverable` finding (subject `campaign:<cid>:<sid>`) and
+  replenishes at `CAMPAIGN_ACCEPT_REPLENISH = 0.3 × KNOWLEDGE_REPLENISH`;
+  only CONCLUSIVE quant verdicts replenish in full (reports must not out-earn
+  experiments).
+- `judge_backtest` now has a shape guard: non-backtest metrics (campaign
+  ticks, delegation reports) are never misread as a zero-entry backtest.
+- Budget unification: ExistenceBudget is the single currency. campaign_tick
+  accepts an injected budget, the delegation executor spends from it, and
+  `TaskRunOutcome.budget_after`/`CampaignTickResult.budget_after` flow the
+  balance back to WillState. CampaignBudget is a quota/mirror, not a currency.
+- Knowledge flows within a campaign: accepted artifact paths are kept on
+  `CampaignStage.artifact_path` and injected into later stages' worker briefs.
+- Secret scanning is structural (`yizhi/core/secrets.py`): credential shapes
+  (assignments, PEM, key ids), not bare keywords — research prose mentioning
+  "API secret management" is no longer killed. Shared by the delegation
+  verification and the campaign acceptance gate.
+- Real-harness transcripts are archived to `.yizhi/delegation-transcripts/`
+  and referenced from `DelegationReport.raw_output_ref`; delegation default
+  timeout is 600s; whole-document code fences from workers are stripped.
 
 ## Accepted But Not Implemented
 
@@ -179,8 +251,9 @@ Campaign harness (W1; BTC MVP foundation):
 - Resident daemon (`run_until` → long-lived `serve`) wiring the channel + delegation into
   a scheduled loop: `resident-operator-plan.md` pillar C, R3; unimplemented. The R2 channel
   itself is implemented (see above) but is not yet driven by a daemon.
-- Delegation is not yet wired into `run_step`/runner; it runs via `execute_delegation`
-  and the `delegate` CLI. ADR-002 defines the boundary.
+- Delegation is not yet wired into `run_step`/runner; it runs via `execute_delegation`,
+  the `delegate` CLI, and the W2 campaign DelegationTaskRunExecutor. ADR-002 defines
+  the boundary.
 - W1.5 campaign web projection/page for the new campaign harness.
 - Long-term funding backfill beyond the current local cache.
 - Full queue execution, walk-forward, out-of-sample, and multi-test promotion
@@ -228,7 +301,7 @@ Deterministic core gate:
 python3 -m pytest -q
 ```
 
-Expected current result: 281 tests pass after W1 Campaign Harness.
+Expected current result: 313 tests pass after chat + native Anthropic provider.
 
 Diff hygiene:
 
@@ -288,6 +361,40 @@ Expected behavior: deterministic fake artifacts are written under
 `data/campaigns/btc-mvp/`, S1 can advance to S2, and revisit rewinds to S1 while
 marking the earlier deliverable superseded.
 
+Campaign real-worker smoke (manual; needs the delegation config and a
+coding-harness CLI; spends API tokens):
+
+```bash
+will --db /tmp/will-btc-real.sqlite campaign create-btc --id btc-real
+YIZHI_DELEGATION_ENABLED=1 YIZHI_DELEGATION_COMMAND=claude \
+  YIZHI_DELEGATION_ROOT="$(pwd)" \
+  will --db /tmp/will-btc-real.sqlite campaign run --id btc-real --max-ticks 1 --worker claude
+```
+
+Expected behavior: the S1 task run passes the read-only delegation gate, drives
+`claude --print --allowedTools ...` with the artifact contract on stdin, and the
+returned Markdown is materialized and validated (real section headings +
+non-empty sources). With the config disabled the task run fails with
+"DelegationConfig inactive" and no subprocess starts. S4 renders from the
+fundarb promotion packet without any LLM. Last run 2026-07-03: pass (S1 real
+artifact accepted; flags verified — the prompt must go via stdin because
+`--allowedTools` is variadic).
+
+Campaign autonomy smoke (offline; ADR-004 B1+B2):
+
+```bash
+will --db /tmp/will-adopt-smoke.sqlite campaign create-btc --id btc-auto
+will --db /tmp/will-adopt-smoke.sqlite campaign adopt --id btc-auto
+will --db /tmp/will-adopt-smoke.sqlite step --env campaign --campaign-id btc-auto
+will --db /tmp/will-adopt-smoke.sqlite campaign state --id btc-auto
+```
+
+Expected behavior: adopt binds a PURSUING goal (metadata.campaign_id) and a
+4-step plan; each step runs one governed tick through the full will loop —
+S1 advances to accepted, a `campaign:deliverable` finding lands in memory,
+and the budget shows the reduced-tier replenishment. Last run 2026-07-03: pass
+(two steps advanced S1+S2 to accepted, cursor 2).
+
 Channel report smoke (offline; local_inbox file-backed):
 
 ```bash
@@ -334,12 +441,18 @@ agent work in progress; do not revert them without explicit instruction.
 ## Next Recommended Work
 
 1. Keep this control plane current after each roadmap-changing change.
-2. Extend strategy judgment from the current packet to walk-forward/OOS promotion packets.
-3. Add longer-horizon funding backfill or a source registry for archived funding.
-4. Build W1.5 campaign web projection/page for current stage, deliverables,
-   validation, and revision history.
-5. Build W2 TaskRunExecutor/capability gate, then connect real CLI/pi workers
-   behind manual gates.
+2. Campaign autonomy line (`adr-004-campaign-autonomy-architecture.md`):
+   B1 CampaignEnvironment and B2 adopt/tiered-value/memory wiring are
+   implemented — the BTC campaign is drivable step-by-step by the will loop
+   (`campaign adopt` + `step --env campaign`). Next: B3 judgment-iterate loop
+   (S1-S3 critic per the accepted "different-LLM critic" decision;
+   ITERATE→prospective→revisit for S4), then B4 `serve` daemon (R3), then B5
+   campaign web page.
+3. Run the full BTC campaign (S1-S4) with the real worker end-to-end and review
+   the four artifacts; feed revision notes back through `campaign revisit`.
+4. Extend strategy judgment from the current packet to walk-forward/OOS promotion packets.
+5. Add longer-horizon funding backfill or a source registry for archived funding
+   (the data-campaign priority argued in ADR-004's win-condition discussion).
 6. Resident-operator line (`resident-operator-plan.md`): R0 (read-only delegation) and
-   R2 (single channel) are implemented; next is R1 (patch artifact) then R3 (resident
-   daemon wiring channel + delegation). Orthogonal to the quant-judgment line above.
+   R2 (single channel) are implemented; R3 (resident daemon) lands as ADR-004 B4;
+   R1 (patch artifact) stays orthogonal.

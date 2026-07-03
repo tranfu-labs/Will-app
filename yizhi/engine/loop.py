@@ -78,6 +78,10 @@ MEMORY_IDS_CAP = 200
 # time (more funding data must accrue first), so a fast smoke loop won't fire it; a long unattended
 # run will, once the trigger time passes. Tunable.
 PROSPECTIVE_RETEST_HOURS = 6.0
+# Tiered value evidence (ADR-004 B2): passing the deterministic form-contract
+# acceptance gate is weaker evidence than a CONCLUSIVE quant verdict, so it
+# replenishes at a reduced rate — reports must not out-earn experiments.
+CAMPAIGN_ACCEPT_REPLENISH = KNOWLEDGE_REPLENISH * 0.3
 
 
 @dataclass
@@ -91,12 +95,26 @@ class LoopRunResult:
     loop_status: str | None = None
 
 
-def environment_from_name(env: str, root: str | Path | None = None) -> ActionEnvironment:
+def environment_from_name(
+    env: str,
+    root: str | Path | None = None,
+    *,
+    db_path: str | Path | None = None,
+    campaign_id: str | None = None,
+    worker: str = "fake",
+    state: WillState | None = None,
+) -> ActionEnvironment:
     normalized = env.strip().lower()
     if normalized in {"self", "self_repo"}:
         return SelfRepoEnvironment(root=root)
     if normalized == "arbbot":
         return ArbBotEnvironment(root=root) if root else ArbBotEnvironment()
+    if normalized == "campaign":
+        if db_path is None or campaign_id is None:
+            raise ValueError("campaign environment requires db_path and a campaign id")
+        from yizhi.environments.campaign import CampaignEnvironment
+
+        return CampaignEnvironment(db_path, campaign_id, worker=worker, state=state, root=root)
     raise ValueError(f"unknown environment: {env}")
 
 
@@ -592,7 +610,12 @@ def _judge_and_record_finding(action_record, proposal, verification, llm, memory
     non-backtest LLM-extracted finding (judgment is None) updates the ledger but is not value —
     INSUFFICIENT/ITERATE is not yet knowledge, and paying for a mere rephrasing of the same
     output would let the economy reward noise and fake plan progress."""
-    judgment = judge_backtest(action_record.metrics) if action_record else None
+    campaign_accept = _campaign_acceptance(action_record)
+    # Acceptance facts take precedence: a campaign tick's metrics are state-machine
+    # shaped, never a backtest — judge_backtest's shape guard also refuses them.
+    judgment = None if campaign_accept is not None else (
+        judge_backtest(action_record.metrics) if action_record else None
+    )
     if judgment is not None:
         _append(
             db_path, EventType.JUDGMENT_RENDERED, "judgment", action_record.id,
@@ -600,6 +623,15 @@ def _judge_and_record_finding(action_record, proposal, verification, llm, memory
             loop_id, event_ids=event_ids,
         )
         finding = judgment_finding(judgment)
+    elif campaign_accept is not None:
+        # A deliverable that passed the deterministic acceptance gate is a structural
+        # fact (form-contract verified), so the finding is authored deterministically —
+        # no LLM reads the artifact to decide whether work happened.
+        finding = (
+            f"campaign {campaign_accept['campaign_id']} stage {campaign_accept['stage_id']} "
+            f"deliverable accepted: {campaign_accept['deliverable_id']} "
+            f"(cursor {campaign_accept['cursor']}, {campaign_accept['campaign_status']})"
+        )
     elif proposal.experiment:
         finding = extract_finding(
             llm, action_record, verification,
@@ -609,12 +641,17 @@ def _judge_and_record_finding(action_record, proposal, verification, llm, memory
         finding = None
     if finding is None:
         return False
-    subject = probe_subject(action_record.command) if action_record else None
+    if campaign_accept is not None:
+        subject = f"campaign:{campaign_accept['campaign_id']}:{campaign_accept['stage_id']}"
+        ledger_kind = "campaign:deliverable"
+    else:
+        subject = probe_subject(action_record.command) if action_record else None
+        ledger_kind = "arbbot:experiment"
     prior = next(
         (
             m.content
             for m in memory_store.backend.all(live_only=True)
-            if m.subject == subject and m.kind == "arbbot:experiment" and m.valid_until is None
+            if m.subject == subject and m.kind == ledger_kind and m.valid_until is None
         ),
         None,
     )
@@ -622,7 +659,7 @@ def _judge_and_record_finding(action_record, proposal, verification, llm, memory
     finding_memory = memory_store.remember(
         finding,
         memory_type=MemoryType.SEMANTIC,
-        kind="arbbot:experiment",
+        kind=ledger_kind,
         subject=subject,
         grounding=[" ".join(action_record.command)] if action_record else [],
         source=MemorySource.INFERRED,
@@ -654,14 +691,35 @@ def _judge_and_record_finding(action_record, proposal, verification, llm, memory
     # replenishment, calibration outcome, and plan progress alike; `cognitively_new` (textual
     # novelty) is only its precondition. A non-backtest LLM-extracted finding (judgment is None)
     # updates the ledger but is not value — it cannot farm the knowledge bonus or fake progress.
+    # Evidence is TIERED (ADR-004 B2): a CONCLUSIVE quant verdict replenishes in full; a
+    # deliverable that only passed the form-contract acceptance gate replenishes at a reduced
+    # rate — otherwise writing reports would out-earn running experiments.
     cognitively_new = is_new_knowledge(prior, finding)
     verified_value = (
         judgment is not None and judgment.verdict in CONCLUSIVE and cognitively_new
     )
+    campaign_value = campaign_accept is not None and cognitively_new
     if verified_value:
         state.budget = replenish(state.budget, KNOWLEDGE_REPLENISH)
         _append(db_path, EventType.BUDGET_REPLENISHED, "budget", state.id, state.budget, loop_id, event_ids=event_ids)
-    return verified_value
+    elif campaign_value:
+        state.budget = replenish(state.budget, CAMPAIGN_ACCEPT_REPLENISH)
+        _append(db_path, EventType.BUDGET_REPLENISHED, "budget", state.id, state.budget, loop_id, event_ids=event_ids)
+    return verified_value or campaign_value
+
+
+def _campaign_acceptance(action_record) -> dict | None:
+    """Deterministic acceptance facts if this action was a campaign tick whose
+    deliverable passed the acceptance gate; None otherwise."""
+    metrics = (action_record.metrics or {}) if action_record else {}
+    if (
+        metrics.get("tick_status") in {"advanced", "completed"}
+        and metrics.get("deliverable_id")
+        and metrics.get("campaign_id")
+        and metrics.get("stage_id")
+    ):
+        return metrics
+    return None
 
 
 def _deliberate_next_goal(llm, state, memory_store, arbbot_proposals, recalled,

@@ -39,7 +39,7 @@ The project now has two layers:
 | `scripts/build_funding_promotion_packet.py` | Builds the research-only promotion/kill packet from experiment results. |
 | `data/papers/README.md` | Paper library maintenance and query guide. |
 | `data/sources/README.md` | Non-paper source library maintenance guide. |
-| `yizhi/campaigns/` | W1 deterministic Campaign Harness: Campaign/Stage/TaskRun/Deliverable/AcceptanceGate schemas, BTC template, fake worker tick engine, artifact validators, and event-sourced projection. |
+| `yizhi/campaigns/` | Deterministic Campaign Harness: Campaign/Stage/TaskRun/Deliverable/AcceptanceGate schemas, BTC template, W2 TaskRunExecutor layer (fake / delegated research / in-process backtest), artifact validators, and event-sourced projection. |
 | `yizhi/` | Internal legacy Python namespace for the Local Will Agent v0 runtime: schemas, event store, policy gate, environments, loop, runner, campaign harness, CLI, and the `yizhi/memory/` will-governed memory economy (salience-at-encoding, adaptive forgetting, consolidation, will-ranking). |
 | `tests/` | pytest coverage for schemas, event store, policy gates, environments, memory, runner, planning, LLM fallbacks, ArbBot probes, loop evaluation, and rollback boundaries. |
 
@@ -89,21 +89,75 @@ will run --env self --max-steps 5
 
 ### Campaign Harness
 
-The W1 Campaign Harness is the deterministic project-work spine for BTC MVP:
+The Campaign Harness is the deterministic project-work spine for BTC research:
 campaign → stage → task run → deliverable → acceptance gate → cursor advance or
-revisit. W1 uses only a fake worker and local artifacts; it proves the harness,
-not real BTC research.
+revisit. W1 proved the harness with a fake worker; W2 adds real workers behind
+the same governed tick via an injected `TaskRunExecutor`:
+
+- `--worker fake` (default): deterministic offline artifacts; what CI runs.
+- `--worker claude` / `--worker codex`: S1-S3 research/analysis run through the
+  governed R0 read-only delegation path (policy gate → existence budget →
+  coding-harness CLI → secret-scan verification → `DELEGATION_*` events). The
+  worker only returns Markdown; the executor writes artifact + meta inside the
+  campaign workspace and the acceptance gate validates the artifact body (real
+  `## section` headings, non-empty sources). S4 backtest renders from the
+  deterministic fundarb promotion packet — no LLM touches the numbers.
+
+Real workers are manual-gated: they need `[delegation]` in the config file or
+`YIZHI_DELEGATION_ENABLED=1 YIZHI_DELEGATION_COMMAND=claude
+YIZHI_DELEGATION_ROOT=$(pwd)`; with the config absent the task run fails with
+an explicit message and no subprocess starts.
 
 ```bash
 will campaign create-btc
 will campaign run --id btc-mvp --max-ticks 2
+will campaign run --id btc-mvp --max-ticks 4 --worker claude   # manual-gated
 will campaign state --id btc-mvp
 will campaign revisit --id btc-mvp --stage S1 --note "补充调研资金费率机制"
+```
+
+### Campaign Autonomy (ADR-004 B1+B2)
+
+The will loop can drive a campaign itself. `campaign adopt` binds the campaign
+as the will's pursued goal (the plan is projected from stages); each
+`step --env campaign` then runs one governed tick through the full loop —
+memory encoding, budget spend, policy gate, verification, and a deterministic
+`campaign:deliverable` finding in the memory ledger. Value evidence is tiered:
+form-gate acceptance replenishes the existence budget at 0.3× the CONCLUSIVE
+quant-verdict rate, so writing reports never out-earns running experiments.
+
+```bash
+will campaign create-btc
+will campaign adopt --id btc-mvp
+will step --env campaign --campaign-id btc-mvp                 # fake worker
+will step --env campaign --campaign-id btc-mvp --worker claude # manual-gated
 ```
 
 Campaign artifacts are local cache under `data/campaigns/<id>/` and ignored by
 Git. The event store records artifact paths, hashes, validation results, and
 supersession events.
+
+### Chat
+
+`will chat` is the interactive dialogue entry (R2 made live). Bare text is an
+`ask`: it enters the will loop as a high-salience observation and the answer is
+grounded in the will's own state (vision/goal/plan/budget) — via the LLM when
+the engine is configured, deterministic receipt otherwise. `vision <text>` and
+`kill goal` govern state with semantic events. `/research <topic>` runs one
+governed read-only delegation (policy gate → existence budget → coding-harness
+worker with WebSearch → secret scan) and prints the report.
+
+```bash
+will chat                          # default: adopted campaign context, else self
+will chat --campaign-id btc-mvp --worker claude
+```
+
+The Anthropic provider is native (stdlib, no extra install):
+
+```bash
+export ANTHROPIC_API_KEY=...
+YIZHI_LLM_ENABLED=1 YIZHI_LLM_PROVIDER=anthropic YIZHI_LLM_MODEL=claude-sonnet-5 will chat
+```
 
 ### Web Panel
 

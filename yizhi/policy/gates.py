@@ -78,7 +78,7 @@ def command_text(command: list[str]) -> str:
 # DelegationTask in metadata. v0 is READ-ONLY: only read kinds, no write tools, no
 # write flag, and an in-repo relative cwd. Write/apply is a later governed stage.
 DELEGATION_SENTINEL = "yizhi:delegate"
-_DELEGATION_READONLY_KINDS = {"analyze_repo", "summarize_tests", "inspect_docs"}
+_DELEGATION_READONLY_KINDS = {"analyze_repo", "summarize_tests", "inspect_docs", "research_topic", "run_analysis"}
 _DELEGATION_FORBIDDEN_TOOL_PATTERNS = ["write", "edit", "create", "delete", "commit", "push", "bash", "shell"]
 
 
@@ -110,6 +110,39 @@ def _delegation_reasons(proposal: ActionProposal) -> list[str]:
         low = str(tool).lower()
         if any(p in low for p in _DELEGATION_FORBIDDEN_TOOL_PATTERNS):
             reasons.append(f"pi_agent delegation tool '{tool}' implies a non-read-only capability")
+    return reasons
+
+
+# Campaign actions (ADR-004 B1). The will drives the campaign harness through
+# exactly three structural sentinels: tick (advance), revisit (rework — must
+# carry evidence, not a whim), report (surface state). All are in-process
+# state-machine operations; a tick's delegated worker is separately governed
+# inside execute_delegation.
+CAMPAIGN_SENTINEL = "yizhi:campaign"
+_CAMPAIGN_OPS = {"tick", "revisit", "report"}
+
+
+def _campaign_reasons(proposal: ActionProposal) -> list[str]:
+    reasons: list[str] = []
+    if not proposal.command or proposal.command[0] != CAMPAIGN_SENTINEL:
+        reasons.append("campaign action must use the campaign sentinel")
+        return reasons
+    op = proposal.metadata.get("campaign_op")
+    if not isinstance(op, dict):
+        reasons.append("campaign action requires structured campaign_op metadata")
+        return reasons
+    kind = op.get("op")
+    if kind not in _CAMPAIGN_OPS:
+        reasons.append(f"campaign op '{kind}' is not in the allowlist")
+    if len(proposal.command) < 2 or proposal.command[1] != kind:
+        reasons.append("campaign command does not match the op")
+    if not op.get("campaign_id"):
+        reasons.append("campaign op requires a campaign_id")
+    if kind == "revisit":
+        if not op.get("stage_id") or not str(op.get("note", "")).strip():
+            reasons.append("campaign revisit requires stage_id and a non-empty note")
+        if not op.get("evidence"):
+            reasons.append("campaign revisit requires evidence (deliverable/judgment id)")
     return reasons
 
 
@@ -164,6 +197,9 @@ def run_policy_gate(
 
     if proposal.environment == EnvironmentName.PI_AGENT:
         reasons.extend(_delegation_reasons(proposal))
+
+    if proposal.environment == EnvironmentName.CAMPAIGN:
+        reasons.extend(_campaign_reasons(proposal))
 
     allowed = len(reasons) == 0
     return PolicyGateResult(

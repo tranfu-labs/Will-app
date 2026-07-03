@@ -8,12 +8,25 @@
 #   # then edit will.config.toml and set enabled = true + your api_key + model
 #
 # Env vars override this file when set: YIZHI_LLM_ENABLED, OPENAI_API_KEY,
-# YIZHI_LLM_MODEL, YIZHI_LLM_PROVIDER, YIZHI_LLM_BASE_URL.
+# ANTHROPIC_API_KEY (wins for provider = "anthropic"), YIZHI_LLM_MODEL,
+# YIZHI_LLM_PROVIDER, YIZHI_LLM_BASE_URL.
 
 [llm]
 enabled = false              # flip to true to turn the cognition engine on
-provider = "openai"          # "openai" today; "anthropic" is a future drop-in
+provider = "openai"          # "openai" | "anthropic" (native, zero extra install) | others via litellm
 api_key = ""
-model = "gpt-5"              # set the exact GPT model your key can call
-base_url = ""                # optional: OpenAI-compatible endpoint override; "" = default
+model = "gpt-5"              # e.g. "claude-sonnet-5" for provider = "anthropic"
+base_url = ""                # optional endpoint override; "" = provider default
 max_output_tokens = 1024     # cap per LLM call
+
+# R0 read-only delegation to a coding-harness CLI (also drives the W2 campaign
+# --worker claude/codex research path). Off by default: with enabled = false or
+# command = "" no subprocess ever starts and task runs fail with an explicit
+# message. Env vars override: YIZHI_DELEGATION_ENABLED, YIZHI_DELEGATION_HARNESS,
+# YIZHI_DELEGATION_COMMAND, YIZHI_DELEGATION_ROOT.
+[delegation]
+enabled = false              # manual gate; flip to true to allow harness runs
+harness = "claude"           # claude | codex
+command = ""                 # CLI entrypoint, e.g. "claude"; empty = inactive
+root = ""                    # restricted root the harness may run in, e.g. the repo path
+request_timeout = 300.0      # seconds per delegated task run
