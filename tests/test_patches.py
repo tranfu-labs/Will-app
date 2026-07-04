@@ -1,8 +1,8 @@
 from __future__ import annotations
 
 from yizhi.core.schemas import DelegationKind, DelegationTask, EventType, ExistenceBudget
-from yizhi.engine.delegation import FakeDelegationClient, build_delegation_proposal
-from yizhi.engine.patches import (
+from yizhi.execution.delegation import FakeDelegationClient, build_delegation_proposal
+from yizhi.execution.patches import (
     parse_patch_files,
     propose_patch_via_delegation,
     validate_patch_text,
@@ -91,7 +91,7 @@ def test_propose_patch_rejects_invalid_worker_output(tmp_path):
 
 
 def test_chat_patch_command_drafts_through_governance(tmp_path, monkeypatch):
-    import yizhi.engine.patches as patches_module
+    import yizhi.execution.patches as patches_module
     from yizhi.liaison.chat import ChatIO, run_chat
 
     monkeypatch.setattr(patches_module, "PATCH_DIR", tmp_path / "patches")

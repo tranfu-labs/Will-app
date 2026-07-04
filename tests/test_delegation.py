@@ -19,7 +19,7 @@ from yizhi.core.schemas import (
     WillState,
 )
 from yizhi.engine.budget import action_cost
-from yizhi.engine.delegation import (
+from yizhi.execution.delegation import (
     FakeDelegationClient,
     build_delegation_proposal,
     execute_delegation,

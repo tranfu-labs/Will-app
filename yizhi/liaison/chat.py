@@ -28,7 +28,7 @@ from typing import Callable
 
 from yizhi.channels.base import InboundCommand, InboundVerb, parse_inbound
 from yizhi.core.schemas import DelegationKind, DelegationTask, WillState
-from yizhi.engine.delegation import (
+from yizhi.execution.delegation import (
     DelegationClient,
     build_delegation_proposal,
     execute_delegation,
@@ -89,7 +89,7 @@ def _run_research(
 ) -> None:
     if client is None:
         from yizhi.config import load_delegation_config
-        from yizhi.engine.delegation import CliHarnessDelegationClient
+        from yizhi.execution.delegation import CliHarnessDelegationClient
 
         client = CliHarnessDelegationClient(load_delegation_config())
     task = DelegationTask(
@@ -126,11 +126,11 @@ def _run_patch(
     io: ChatIO,
     client: DelegationClient | None,
 ) -> None:
-    from yizhi.engine.patches import propose_patch_via_delegation
+    from yizhi.execution.patches import propose_patch_via_delegation
 
     if client is None:
         from yizhi.config import load_delegation_config
-        from yizhi.engine.delegation import CliHarnessDelegationClient
+        from yizhi.execution.delegation import CliHarnessDelegationClient
 
         client = CliHarnessDelegationClient(load_delegation_config())
     outcome, validation, artifact = propose_patch_via_delegation(

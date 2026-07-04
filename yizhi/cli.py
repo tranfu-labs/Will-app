@@ -14,7 +14,7 @@ from yizhi.channels.notify import event_to_message, make_channel
 from yizhi.config import load_channel_config, load_delegation_config
 from yizhi.core.ids import new_id
 from yizhi.core.schemas import DelegationKind, DelegationTask, EventType, WillState
-from yizhi.engine.delegation import CliHarnessDelegationClient, build_delegation_proposal, execute_delegation
+from yizhi.execution.delegation import CliHarnessDelegationClient, build_delegation_proposal, execute_delegation
 from yizhi.engine.loop import environment_from_name, run_step
 from yizhi.engine.runner import run_until
 from yizhi.eval.loops import list_loop_evals
@@ -504,7 +504,7 @@ def cmd_campaign_revisit(args: argparse.Namespace) -> int:
 def cmd_patch_propose(args: argparse.Namespace) -> int:
     """R1: draft a patch through the governed delegation chain. Never applies —
     review with `git apply --check <artifact>` and apply manually (R4 later)."""
-    from yizhi.engine.patches import propose_patch_via_delegation
+    from yizhi.execution.patches import propose_patch_via_delegation
     from yizhi.state.snapshots import load_or_create_state as _load_state
     from yizhi.state.store import create_snapshot
 

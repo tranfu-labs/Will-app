@@ -14,7 +14,7 @@ from yizhi.campaigns.executor import (
 )
 from yizhi.campaigns.schemas import CampaignStatus, TaskRunKind
 from yizhi.core.schemas import DelegationReport, DelegationTask, EventType
-from yizhi.engine.delegation import FakeDelegationClient
+from yizhi.execution.delegation import FakeDelegationClient
 from yizhi.state.store import init_db, list_events
 
 

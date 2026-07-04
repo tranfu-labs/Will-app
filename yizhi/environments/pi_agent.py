@@ -21,7 +21,7 @@ from yizhi.core.schemas import (
     WillState,
     WorldObservation,
 )
-from yizhi.engine.delegation import (
+from yizhi.execution.delegation import (
     DelegationClient,
     FakeDelegationClient,
     _forbidden_in_report,

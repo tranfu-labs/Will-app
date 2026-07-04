@@ -23,7 +23,7 @@ from typing import Protocol, runtime_checkable
 from yizhi.campaigns.schemas import Campaign, CampaignStage, TaskRun, TaskRunKind
 from yizhi.campaigns.validators import parse_markdown_sections, parse_markdown_sources
 from yizhi.core.schemas import DelegationKind, DelegationTask, ExistenceBudget
-from yizhi.engine.delegation import (
+from yizhi.execution.delegation import (
     DelegationClient,
     build_delegation_proposal,
     execute_delegation,
@@ -433,7 +433,7 @@ def resolve_executor(
             return None
         if delegation_client is None:
             from yizhi.config import load_delegation_config
-            from yizhi.engine.delegation import CliHarnessDelegationClient
+            from yizhi.execution.delegation import CliHarnessDelegationClient
 
             config = load_delegation_config()
             delegation_client = CliHarnessDelegationClient(config)

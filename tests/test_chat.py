@@ -3,7 +3,7 @@ from __future__ import annotations
 from yizhi.campaigns.btc import build_btc_campaign
 from yizhi.campaigns.store import save_campaign_started
 from yizhi.core.schemas import EventType
-from yizhi.engine.delegation import FakeDelegationClient
+from yizhi.execution.delegation import FakeDelegationClient
 from yizhi.liaison.chat import ChatIO, run_chat
 from yizhi.state.store import init_db, list_events, load_latest_snapshot
 

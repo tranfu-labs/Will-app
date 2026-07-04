@@ -26,7 +26,7 @@ from yizhi.core.schemas import (
     ExistenceBudget,
 )
 from yizhi.core.secrets import contains_secret_material
-from yizhi.engine.delegation import (
+from yizhi.execution.delegation import (
     DelegationClient,
     DelegationOutcome,
     build_delegation_proposal,

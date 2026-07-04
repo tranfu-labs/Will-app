@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from yizhi.campaigns.executor import strip_code_fence
 from yizhi.core.secrets import contains_secret_material
-from yizhi.engine.delegation import archive_transcript
+from yizhi.execution.delegation import archive_transcript
 
 
 def test_secret_scan_catches_credential_shapes():
