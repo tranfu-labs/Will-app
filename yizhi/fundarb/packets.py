@@ -11,7 +11,7 @@ from pathlib import Path
 from typing import Any
 
 from yizhi.core.time import utc_now_iso
-from yizhi.fundarb.dataset import _canonical_json
+from yizhi.fundarb.dataset import _canonical_json, preserve_generated_at_when_stable
 from yizhi.fundarb.execution import DEFAULT_RESULTS, _load_jsonl
 
 DEFAULT_PACKET = Path(__file__).resolve().parents[2] / "data" / "funding" / "promotion_packet.json"
@@ -157,6 +157,7 @@ def build_promotion_packet(results_path: Path = DEFAULT_RESULTS, *, now_iso: str
 def write_promotion_packet(packet: dict[str, Any], output_path: Path = DEFAULT_PACKET) -> Path:
     output_path = Path(output_path)
     output_path.parent.mkdir(parents=True, exist_ok=True)
+    packet = preserve_generated_at_when_stable(packet, output_path)
     output_path.write_text(json.dumps(packet, indent=2, sort_keys=True) + "\n", encoding="utf-8")
     return output_path
 

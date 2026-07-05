@@ -11,7 +11,7 @@ from typing import Any, Iterable
 
 from yizhi.core.time import utc_now_iso
 from yizhi.environments.arbbot import BACKTEST_SENTINEL
-from yizhi.fundarb.dataset import DEFAULT_COVERAGE, _canonical_json
+from yizhi.fundarb.dataset import DEFAULT_COVERAGE, _canonical_json, preserve_generated_at_when_stable
 
 DEFAULT_QUEUE = Path(__file__).resolve().parents[2] / "data" / "funding" / "experiment_queue.json"
 DEFAULT_MIN_NET_BPS = (-1000.0, 0.0, 3.0, 5.0, 8.0)
@@ -139,6 +139,7 @@ def build_experiment_queue(
 def write_experiment_queue(queue: dict[str, Any], output_path: Path = DEFAULT_QUEUE) -> Path:
     output_path = Path(output_path)
     output_path.parent.mkdir(parents=True, exist_ok=True)
+    queue = preserve_generated_at_when_stable(queue, output_path)
     output_path.write_text(json.dumps(queue, indent=2, sort_keys=True) + "\n", encoding="utf-8")
     return output_path
 

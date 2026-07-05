@@ -281,12 +281,9 @@ Campaign autonomy (ADR-004 B1+B2; 2026-07-03):
 ## Accepted But Not Implemented
 
 - Pydantic AI or equivalent typed worker delegation layer.
-- Delegation beyond read-only: patch drafting (R1) and governed apply (R4) in
-  `docs/resident-operator-plan.md` are unimplemented. R0 read-only delegation is
-  implemented (see above).
-- Resident daemon (`run_until` → long-lived `serve`) wiring the channel + delegation into
-  a scheduled loop: `resident-operator-plan.md` pillar C, R3; unimplemented. The R2 channel
-  itself is implemented (see above) but is not yet driven by a daemon.
+- Governed apply (R4) in `docs/resident-operator-plan.md` is unimplemented.
+  R0 read-only delegation, R1 patch drafting, R2 single channel, and R3 resident
+  daemon are implemented (see above).
 - Delegation is not yet wired into `run_step`/runner; it runs via `execute_delegation`,
   the `delegate` CLI, and the W2 campaign DelegationTaskRunExecutor. ADR-002 defines
   the boundary.
@@ -337,7 +334,7 @@ Deterministic core gate:
 python3 -m pytest -q
 ```
 
-Expected current result: 313 tests pass after chat + native Anthropic provider.
+Expected current result: 326 tests pass after idempotent FundArb artifact writes.
 
 Diff hygiene:
 
@@ -482,13 +479,13 @@ agent work in progress; do not revert them without explicit instruction.
    implemented — the BTC campaign is drivable step-by-step by the will loop
    (`campaign adopt` + `step --env campaign`). Next: B3 judgment-iterate loop
    (S1-S3 critic per the accepted "different-LLM critic" decision;
-   ITERATE→prospective→revisit for S4), then B4 `serve` daemon (R3), then B5
-   campaign web page.
+   ITERATE→prospective→revisit for S4), then B5 campaign web page. B4 `serve`
+   daemon (R3) is implemented and should be used as the residency spine.
 3. Run the full BTC campaign (S1-S4) with the real worker end-to-end and review
    the four artifacts; feed revision notes back through `campaign revisit`.
 4. Extend strategy judgment from the current packet to walk-forward/OOS promotion packets.
 5. Add longer-horizon funding backfill or a source registry for archived funding
    (the data-campaign priority argued in ADR-004's win-condition discussion).
-6. Resident-operator line (`resident-operator-plan.md`): R0 (read-only delegation) and
-   R2 (single channel) are implemented; R3 (resident daemon) lands as ADR-004 B4;
-   R1 (patch artifact) stays orthogonal.
+6. Resident-operator line (`resident-operator-plan.md`): R0 (read-only delegation),
+   R1 (patch artifact), R2 (single channel), and R3 (resident daemon) are
+   implemented; R4 governed apply remains the major safety-gated gap.

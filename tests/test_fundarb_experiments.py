@@ -78,3 +78,22 @@ def test_queued_commands_pass_arbbot_policy_gate_and_write_json(tmp_path):
     assert len(saved["experiments"]) == 2
     for item in saved["experiments"]:
         assert run_policy_gate(_proposal(item["command"])).allowed
+
+
+def test_queue_write_preserves_generated_at_when_stable(tmp_path):
+    output = tmp_path / "queue.json"
+    first = build_experiment_queue(_write_coverage(tmp_path), min_net_bps=[3], horizon_hours=[24], max_symbols=1)
+    first["generated_at"] = "first"
+    write_experiment_queue(first, output)
+
+    second = dict(first)
+    second["generated_at"] = "second"
+    write_experiment_queue(second, output)
+    saved = json.loads(output.read_text(encoding="utf-8"))
+    assert saved["generated_at"] == "first"
+
+    changed = build_experiment_queue(_write_coverage(tmp_path), min_net_bps=[3, 5], horizon_hours=[24], max_symbols=1)
+    changed["generated_at"] = "third"
+    write_experiment_queue(changed, output)
+    saved = json.loads(output.read_text(encoding="utf-8"))
+    assert saved["generated_at"] == "third"

@@ -45,6 +45,33 @@ def _canonical_json(data: Any) -> str:
     return json.dumps(data, sort_keys=True, separators=(",", ":"), ensure_ascii=True)
 
 
+def _without_generated_at(data: dict[str, Any]) -> dict[str, Any]:
+    stable = dict(data)
+    stable.pop("generated_at", None)
+    return stable
+
+
+def preserve_generated_at_when_stable(data: dict[str, Any], output_path: Path) -> dict[str, Any]:
+    """Keep generated artifacts idempotent when only the timestamp would change."""
+    output_path = Path(output_path)
+    if not output_path.exists():
+        return data
+    try:
+        existing = json.loads(output_path.read_text(encoding="utf-8"))
+    except json.JSONDecodeError:
+        return data
+    if not isinstance(existing, dict):
+        return data
+    if _without_generated_at(existing) != _without_generated_at(data):
+        return data
+    generated_at = existing.get("generated_at")
+    if not isinstance(generated_at, str):
+        return data
+    preserved = dict(data)
+    preserved["generated_at"] = generated_at
+    return preserved
+
+
 def cache_snapshot_id(cache: dict[str, Any]) -> str:
     return hashlib.sha256(_canonical_json(cache).encode("utf-8")).hexdigest()
 
@@ -222,6 +249,7 @@ def build_coverage_report(ledger_path: Path = DEFAULT_LEDGER, *, min_periods: in
 def write_coverage_report(report: dict[str, Any], output_path: Path = DEFAULT_COVERAGE) -> Path:
     output_path = Path(output_path)
     output_path.parent.mkdir(parents=True, exist_ok=True)
+    report = preserve_generated_at_when_stable(report, output_path)
     output_path.write_text(json.dumps(report, indent=2, sort_keys=True) + "\n", encoding="utf-8")
     return output_path
 

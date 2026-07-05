@@ -1,6 +1,6 @@
 # Will 常驻自主工程体执行方案(Resident Autonomous Operator)
 
-状态:Proposed plan(2026-06);**R0、R2 已实现(2026-06-30),R1、R3 已实现(2026-07-03——R1: worker 只回 diff 文本、确定性校验+归档、绝不 apply;R3: `will serve` 常驻 daemon,渠道驱动、预算停=低功耗等待、增量事件推送),R4 仍未实现**。本文定方案与接缝,除 R0/R2 外不声称已落地。配套 [adr-001-build-rent-port.md](adr-001-build-rent-port.md)、[adr-002-pi-agent-delegated-execution.md](adr-002-pi-agent-delegated-execution.md)、[will-engine-production-roadmap.md](will-engine-production-roadmap.md)。
+状态:Proposed plan(2026-06);**R0、R2 已实现(2026-06-30),R1、R3 已实现(2026-07-03——R1: worker 只回 diff 文本、确定性校验+归档、绝不 apply;R3: `will serve` 常驻 daemon,渠道驱动、预算停=低功耗等待、增量事件推送),R4 仍未实现**。本文定方案与接缝;R0-R3 已落地,R4 仍是下一道安全闸。配套 [adr-001-build-rent-port.md](adr-001-build-rent-port.md)、[adr-002-pi-agent-delegated-execution.md](adr-002-pi-agent-delegated-execution.md)、[will-engine-production-roadmap.md](will-engine-production-roadmap.md)。
 
 本文把"yizhi 从本地 CLI 单步治理回路,演进为**常驻服务器、可受治理地委派写代码、通过单一渠道与人交互**的自主工程体"这条形态演进线,拆成可执行、带验证闸、默认安全的阶段。
 
@@ -16,9 +16,9 @@
 
 | 支柱 | 是什么 | 对应用户诉求 | 现状 |
 |---|---|---|---|
-| **A 受治理委派写代码** | 委派外部 coding harness CLI:只读分析 → 草拟 patch → (受治理)apply | "写代码、持续工作能力必须强;用 gpt/claude api key 写代码" | ADR-002 已定边界、接缝预留,**未实现** |
-| **B 交互层** | 单渠道 `Channel`:主动汇报关键事件 + 接收人类指令 / 授权 | "以后通过各种软件交互,多选一即可" | **文档与代码均缺席,未实现** |
-| **C 常驻运行时** | `run_until` 升级为长期驻留 + 调度,保留预算停 / resume / stuck 检测 | "以后 yizhi 自己跑在服务器" | 有 bounded `run_until`,**无 daemon** |
+| **A 受治理委派写代码** | 委派外部 coding harness CLI:只读分析 → 草拟 patch → (受治理)apply | "写代码、持续工作能力必须强;用 gpt/claude api key 写代码" | R0 只读分析 + R1 patch artifact 已实现;R4 apply 未实现 |
+| **B 交互层** | 单渠道 `Channel`:主动汇报关键事件 + 接收人类指令 / 授权 | "以后通过各种软件交互,多选一即可" | R2 单渠道已实现;Telegram 仍需手动配置 |
+| **C 常驻运行时** | `run_until` 升级为长期驻留 + 调度,保留预算停 / resume / stuck 检测 | "以后 yizhi 自己跑在服务器" | R3 `will serve` 已实现;真实常驻部署仍需人工启动/运维 |
 
 ## 2. 与现有架构 / 路线图的关系(正交补线,不改主线)
 
@@ -191,11 +191,11 @@
 
 **实施顺序**:`R0 → R2 → R1 → R3 → R4`。先打通"委派只读 + 能汇报",形成最小可感知闭环,再逐步加 patch、daemon、apply。
 
-**第一步(R0 起手,纯离线、零风险)**:
+**已完成的 R0 起手(纯离线、零风险)**:
 1. `schemas.py` 加 `EnvironmentName.PI_AGENT` + `DELEGATION_*` 事件 + `DelegationTask/Report` 模型。
 2. `engine/delegation.py` 定义 `DelegationClient` Protocol + `CliHarnessDelegationClient` 桩(默认禁用)。
 3. `policy/gates.py` 加 PI_AGENT 只读 allowlist。
 4. `tests/test_delegation.py` 用 fake harness 锁住 schema / policy / budget / event 闭环。
 5. 全程不真起 subprocess、不联网、不写主 repo;`pytest` 仍全绿。
 
-完成 R0 起手后,才考虑接第一个真实 harness(手动 gate)与 R2 渠道骨架。
+R0 起手后,R2 渠道骨架、R1 patch artifact、R3 daemon 已继续落地;下一步是只在显式授权下推进 R4 governed apply。

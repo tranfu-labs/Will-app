@@ -73,3 +73,21 @@ def test_packet_id_is_deterministic(tmp_path):
     output = write_promotion_packet(first, tmp_path / "packet.json")
     saved = json.loads(output.read_text(encoding="utf-8"))
     assert saved["packet_id"] == first["packet_id"]
+
+
+def test_packet_write_preserves_generated_at_when_stable(tmp_path):
+    results = _write_results(tmp_path, [_result("A", "kill", "r1", net=-1)])
+    output = tmp_path / "packet.json"
+    first = build_promotion_packet(results, now_iso="first")
+    write_promotion_packet(first, output)
+
+    second = build_promotion_packet(results, now_iso="second")
+    write_promotion_packet(second, output)
+    saved = json.loads(output.read_text(encoding="utf-8"))
+    assert saved["generated_at"] == "first"
+
+    changed_results = _write_results(tmp_path, [_result("A", "kill", "r1", net=-1), _result("B", "insufficient", "r2")])
+    changed = build_promotion_packet(changed_results, now_iso="third")
+    write_promotion_packet(changed, output)
+    saved = json.loads(output.read_text(encoding="utf-8"))
+    assert saved["generated_at"] == "third"

@@ -71,3 +71,26 @@ def test_coverage_report_counts_overlap_and_readiness(tmp_path):
     output = write_coverage_report(report, tmp_path / "coverage.json")
     saved = json.loads(output.read_text(encoding="utf-8"))
     assert saved["symbol_coverage"]["EDGEY"]["venues"]["binance"]["points"] == 3
+
+
+def test_coverage_write_preserves_generated_at_when_stable(tmp_path):
+    cache = _write_cache(tmp_path)
+    ledger = tmp_path / "ledger.jsonl"
+    ingest_cache(cache, ledger, now_iso="2026-06-27T00:00:00+00:00")
+    output = tmp_path / "coverage.json"
+    first = build_coverage_report(ledger, min_periods=3)
+    first["generated_at"] = "first"
+    write_coverage_report(first, output)
+
+    second = build_coverage_report(ledger, min_periods=3)
+    second["generated_at"] = "second"
+    write_coverage_report(second, output)
+    saved = json.loads(output.read_text(encoding="utf-8"))
+
+    assert saved["generated_at"] == "first"
+
+    changed = build_coverage_report(ledger, min_periods=4)
+    changed["generated_at"] = "third"
+    write_coverage_report(changed, output)
+    saved = json.loads(output.read_text(encoding="utf-8"))
+    assert saved["generated_at"] == "third"
