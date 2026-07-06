@@ -1,8 +1,8 @@
-from yizhi.core.schemas import ActionClass, ActionProposal, EnvironmentName, ValuePolicy, WillState
-from yizhi.policy.gates import run_policy_gate
+from will.core.schemas import ActionClass, ActionProposal, EnvironmentName, ValuePolicy, WillState
+from will.autonomy.gates import run_policy_gate
 
 
-def proposal(action_class, command, env=EnvironmentName.ARBBOT, dry_run=True):
+def proposal(action_class, command, env=EnvironmentName.SELF_REPO, dry_run=True):
     return ActionProposal(
         environment=env,
         action_class=action_class,
@@ -24,20 +24,13 @@ def test_credential_reproduce_rejected():
         assert not result.allowed
 
 
-def test_arbbot_forbidden_patterns_rejected():
-    for token in ["--live", "place_order", "secret"]:
-        result = run_policy_gate(proposal(ActionClass.FINANCIAL, ["python", "x.py", token]))
-        assert not result.allowed
-        assert any(token in reason for reason in result.reasons)
-
-
-def test_arbbot_allowed_commands_allowed():
+def test_self_repo_allowed_commands_allowed():
     for command in [
-        ["make", "smoke"],
-        ["python", "scripts/smoke_funding_diff_scan.py", "--dry-run"],
-        ["python", "scripts/smoke_fundarb_public_scan.py", "--dry-run"],
+        ["git", "status", "--short", "--branch"],
+        ["python3", "-m", "json.tool", "data/papers/manifest.json"],
+        ["python3", "-m", "json.tool", "data/sources/manifest.json"],
     ]:
-        result = run_policy_gate(proposal(ActionClass.FINANCIAL, command, dry_run=True))
+        result = run_policy_gate(proposal(ActionClass.INTERNAL, command, dry_run=True))
         assert result.allowed
 
 
@@ -47,7 +40,7 @@ def test_value_policy_forbids_extra_action_class():
     """ValuePolicy can ADD forbidden classes beyond the v0 hardcoded floor."""
     state = WillState()
     state.value_policy.forbidden_action_classes.append(ActionClass.FINANCIAL)
-    p = proposal(ActionClass.FINANCIAL, ["make", "smoke"], dry_run=True)
+    p = proposal(ActionClass.FINANCIAL, [], dry_run=True)
     without_state = run_policy_gate(p)
     with_state = run_policy_gate(p, state=state)
     assert without_state.allowed, "without state, FINANCIAL dry_run is allowed"

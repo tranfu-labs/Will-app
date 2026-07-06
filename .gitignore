@@ -1,5 +1,5 @@
 # Local generated research cache
-.yizhi/
+.will/
 data/papers/pdfs/
 data/papers/papers.sqlite
 data/papers/*.sqlite
@@ -16,7 +16,6 @@ __pycache__/
 .env
 .env.*
 !.env.example
-yizhi.config.toml
 will.config.toml
 
 # OS/editor noise

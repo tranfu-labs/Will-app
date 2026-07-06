@@ -1,7 +1,7 @@
 """Test-suite guards.
 
-Force the LLM cognition engine OFF for the whole test run, regardless of any
-local `will.config.toml` or legacy `yizhi.config.toml` the developer may have enabled. This keeps the suite
+Force optional provider-backed adapters OFF for the whole test run, regardless of any
+local `will.config.toml` the developer may have enabled. This keeps the suite
 fully deterministic and offline (no network, no key) — the project's invariant.
 Live LLM behaviour is verified outside pytest. Tests that exercise config/env
 logic use monkeypatch and override this per-test as needed.
@@ -9,8 +9,7 @@ logic use monkeypatch and override this per-test as needed.
 
 import os
 
-os.environ["YIZHI_LLM_ENABLED"] = "0"
-os.environ["YIZHI_EMBEDDING_ENABLED"] = "0"
+os.environ["WILL_LLM_ENABLED"] = "0"
 # The offline suite must never start a real coding-harness subprocess, even
 # when the developer's local config has the delegation gate open.
-os.environ["YIZHI_DELEGATION_ENABLED"] = "0"
+os.environ["WILL_DELEGATION_ENABLED"] = "0"

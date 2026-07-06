@@ -1,39 +1,36 @@
-"""R0 governed read-only delegation to an external coding harness.
+"""Governed read-only delegation to an external coding harness.
 
 Offline and deterministic: a FakeDelegationClient stands in for the real CLI, so the
 suite never starts a subprocess or touches the network. These tests pin the safety
 contract (read-only only) and the governance closure (gate → budget → run → verify →
-events). See docs/resident-operator-plan.md.
+events).
 """
 
 from __future__ import annotations
 
-from yizhi.core.schemas import (
+from will.core.schemas import (
     ActionClass,
     ActionStatus,
     DelegationKind,
     DelegationTask,
-    EnvironmentName,
     EventType,
     ExistenceBudget,
-    WillState,
 )
-from yizhi.engine.budget import action_cost
-from yizhi.execution.delegation import (
+from will.autonomy.budget import action_cost
+from will.workers.delegation import (
     FakeDelegationClient,
     build_delegation_proposal,
     execute_delegation,
 )
-from yizhi.environments.pi_agent import PiAgentEnvironment
-from yizhi.policy.gates import run_policy_gate
-from yizhi.state.store import list_events
+from will.autonomy.gates import run_policy_gate
+from will.ledger.store import list_events
 
 
 def _task(**over) -> DelegationTask:
     base = dict(
         kind=DelegationKind.ANALYZE_REPO,
-        instruction="Summarize fundarb funding-diff modules.",
-        cwd="yizhi/fundarb",
+        instruction="Summarize BTC campaign harness modules.",
+        cwd="will/campaigns",
         allowed_tools=["Read", "Grep", "Glob"],
     )
     base.update(over)
@@ -117,36 +114,11 @@ def test_failed_harness_records_failure(tmp_path):
     assert EventType.DELEGATION_FAILED.value in types
 
 
-def test_pi_agent_environment_implements_protocol(tmp_path):
-    env = PiAgentEnvironment(root=tmp_path, client=FakeDelegationClient())
-    assert env.name == EnvironmentName.PI_AGENT.value
-    assert env.observe()[0].environment == EnvironmentName.PI_AGENT
-    proposals = env.propose_actions(WillState())
-    assert proposals and all(p.environment == EnvironmentName.PI_AGENT for p in proposals)
-    # the env's own default proposal must itself pass the read-only gate
-    assert run_policy_gate(proposals[0]).allowed
-    record = env.run(proposals[0])
-    assert record.status == ActionStatus.SUCCEEDED
-    assert env.verify(record).passed
-
-
-def test_pi_agent_rejects_forbidden_content_in_report(tmp_path):
-    """A harness that returns apikey/secret in its output must be caught at the
-    environment layer — not just inside execute_delegation."""
-    leaked = FakeDelegationClient(ok=True, summary="found APIKEY=abc123 in config")
-    env = PiAgentEnvironment(root=tmp_path, client=leaked)
-    proposals = env.propose_actions(WillState())
-    record = env.run(proposals[0])
-    assert record.status == ActionStatus.FAILED
-    assert "forbidden" in (record.error or "")
-    assert not env.verify(record).passed
-
-
 def test_cli_delegate_runs_offline(tmp_path, capsys):
-    from yizhi.cli import main
+    from will.cli import main
 
     db = tmp_path / "s.sqlite"
-    rc = main(["--db", str(db), "delegate", "--instruction", "map fundarb modules", "--cwd", "yizhi/fundarb"])
+    rc = main(["--db", str(db), "delegate", "--instruction", "map campaign modules", "--cwd", "will/campaigns"])
     assert rc == 0
     out = capsys.readouterr().out
     assert "policy decision: allow" in out   # read-only default passes the gate

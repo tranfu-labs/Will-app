@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Build the local yizhi paper library.
+"""Build the local will paper library.
 
 This script downloads PDFs listed in data/papers/manifest.json and writes a
 SQLite database with source metadata, tags, local paths, file sizes, and hashes.
@@ -25,7 +25,7 @@ ROOT = Path(__file__).resolve().parents[1]
 MANIFEST = ROOT / "data" / "papers" / "manifest.json"
 PDF_DIR = ROOT / "data" / "papers" / "pdfs"
 DB_PATH = ROOT / "data" / "papers" / "papers.sqlite"
-USER_AGENT = "yizhi-paper-library/0.1 (+local research database)"
+USER_AGENT = "will-paper-library/0.1 (+local research database)"
 
 
 def slugify(value: str) -> str:

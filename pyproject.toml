@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "will"
 version = "0.1.0"
-description = "Local governed Will Agent v0"
+description = "Local Autonomous Campaign Harness"
 readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [
@@ -19,27 +19,12 @@ dev = [
 llm = [
   "openai>=1.0",
 ]
-litellm = [
-  "litellm>=1.0",
-]
-embedding = [
-  "fastembed>=0.3",
-]
-web = [
-  "fastapi>=0.110",
-  "uvicorn>=0.27",
-  "jinja2>=3.1",
-]
 
 [project.scripts]
-will = "yizhi.cli:main"
-yizhi = "yizhi.cli:main"
-
-[tool.setuptools.package-data]
-"yizhi.web" = ["templates/*.html", "static/*"]
+will = "will.cli:main"
 
 [tool.setuptools.packages.find]
-include = ["yizhi*"]
+include = ["will*"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

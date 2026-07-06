@@ -1,8 +1,8 @@
 from __future__ import annotations
 
-from yizhi.campaigns.executor import strip_code_fence
-from yizhi.core.secrets import contains_secret_material
-from yizhi.execution.delegation import archive_transcript
+from will.campaigns.executor import strip_code_fence
+from will.core.secrets import contains_secret_material
+from will.workers.delegation import archive_transcript
 
 
 def test_secret_scan_catches_credential_shapes():
@@ -29,7 +29,7 @@ def test_strip_code_fence_unwraps_whole_document():
 def test_archive_transcript_writes_and_survives_failure(tmp_path):
     ref = archive_transcript("task-1", "stdout text", "stderr text", root=tmp_path)
     assert ref
-    content = (tmp_path / ".yizhi/delegation-transcripts/task-1.txt").read_text()
+    content = (tmp_path / ".will/delegation-transcripts/task-1.txt").read_text()
     assert "stdout text" in content and "stderr text" in content
     # Unwritable root degrades to "" instead of raising.
     assert archive_transcript("task-2", "a", "b", root=tmp_path / "no" / "such" / "\0bad") == ""

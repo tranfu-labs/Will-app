@@ -1,10 +1,10 @@
 # References Map
 
-This file explains how yizhi's research references are organized.
+This file explains how will's research references are organized.
 
 ## Local Paper Database
 
-Use [data/papers/manifest.json](/Users/griffith/Projects/AI/yizhi/data/papers/manifest.json)
+Use [data/papers/manifest.json](/Users/griffith/Projects/AI/will/data/papers/manifest.json)
 for public papers with downloadable PDFs. The generated local cache is rebuilt
 with:
 
@@ -19,7 +19,7 @@ The PDF cache and SQLite index are intentionally local-only:
 
 ## Non-Paper Source Database
 
-Use [data/sources/manifest.json](/Users/griffith/Projects/AI/yizhi/data/sources/manifest.json)
+Use [data/sources/manifest.json](/Users/griffith/Projects/AI/will/data/sources/manifest.json)
 for:
 
 - books and encyclopedia entries;
@@ -30,7 +30,7 @@ for:
 - safety blogs and primary explainers.
 
 The split matters because books, docs, and GitHub repositories should not be
-forced into a PDF pipeline. yizhi needs a source graph, not just a folder of
+forced into a PDF pipeline. will needs a source graph, not just a folder of
 papers.
 
 ## Research Layers
